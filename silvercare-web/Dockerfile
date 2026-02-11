@@ -2,7 +2,7 @@
 # Advanced Feature D: Docker containerization
 
 # Stage 1: Build the WAR file
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Deploy to Tomcat
-FROM tomcat:10.1-jdk17-temurin-jammy
+FROM tomcat:10.1-jdk21-temurin-jammy
 
 # Remove default Tomcat webapps
 RUN rm -rf /usr/local/tomcat/webapps/*
