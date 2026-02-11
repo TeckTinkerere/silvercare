@@ -20,7 +20,7 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Copy JAR from builder stage
-COPY --from=builder /app/target/silvercare-api-*.jar app.jar
+COPY --from=builder /app/target/silvercare-api.jar app.jar
 
 # Expose port 8081 (Spring Boot default for our API)
 EXPOSE 8081
