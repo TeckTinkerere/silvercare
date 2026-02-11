@@ -1,0 +1,490 @@
+/*
+ * SilverCare - Enhanced Custom Stylesheet
+ *
+ * Defines the professional theme for the SilverCare application,
+ * with modern animations and improved aesthetics
+ */
+
+/* 1. Design System: Variables
+   ========================================================================== */
+
+:root {
+    /* Color Palette - Enhanced with gradients */
+    --primary-color: #5B7C99;      /* Professional blue-gray for trust */
+    --primary-dark: #4A6380;       /* Darker shade for hover states */
+    --secondary-color: #F8F9FA;    /* Light Gray for clean backgrounds */
+    --accent-color: #4DB6AC;       /* Teal for calls-to-action */
+    --accent-hover: #3D9D95;       /* Darker teal for hover */
+    --text-color: #333333;         /* Charcoal for readability */
+    --heading-color: #2C3E50;      /* Deep blue-gray for headings */
+    --nav-overlay: rgba(255, 255, 255, 0.1);
+
+    /* Typography */
+    --font-family-headings: 'Poppins', sans-serif;
+    --font-family-body: 'Inter', sans-serif;
+
+    /* Spacing & Borders */
+    --border-radius: 0.5rem;
+    --border-radius-lg: 0.75rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-medium: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
+/* 2. Global Styles & Resets
+   ========================================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family-body);
+    color: var(--text-color);
+    background-color: var(--secondary-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-headings);
+    color: var(--heading-color);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+/* 3. Enhanced Header & Navigation
+   ========================================================================== */
+
+header.bg-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Navbar Brand with Enhanced Animation */
+.navbar-brand {
+    font-family: var(--font-family-headings);
+    font-size: 1.5rem;
+    color: white !important;
+    display: flex;
+    align-items: center;
+    transition: transform var(--transition-fast);
+    position: relative;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+.navbar-brand i {
+    font-size: 1.8rem;
+    animation: heartbeat 2s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    10%, 30% {
+        transform: scale(1.1);
+    }
+    20%, 40% {
+        transform: scale(1);
+    }
+}
+
+.navbar-brand strong {
+    position: relative;
+}
+
+.navbar-brand strong::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--accent-color);
+    transition: width var(--transition-medium);
+}
+
+.navbar-brand:hover strong::after {
+    width: 100%;
+}
+
+/* Enhanced Navigation Links */
+.nav-link {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.4rem 0.75rem !important;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.95rem;
+}
+
+.nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: var(--nav-overlay);
+    transition: left var(--transition-medium);
+    z-index: -1;
+}
+
+.nav-link:hover::before {
+    left: 0;
+}
+
+.nav-link:hover {
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+.nav-link i {
+    font-size: 0.95rem;
+    width: 18px;
+    transition: transform var(--transition-fast);
+}
+
+.nav-link:hover i {
+    transform: scale(1.2);
+}
+
+/* Active Navigation Item Indicator */
+.nav-link.active {
+    background-color: var(--nav-overlay);
+    border-bottom: 2px solid var(--accent-color);
+}
+
+/* Dropdown Menu Styling */
+.dropdown-menu {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    animation: slideDown 0.3s ease-out;
+    margin-top: 0.5rem;
+}
+
+.dropdown-item {
+    padding: 0.6rem 1.25rem;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.dropdown-item i {
+    width: 20px;
+    color: var(--primary-color);
+}
+
+.dropdown-item:hover {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+    padding-left: 1.5rem;
+}
+
+.dropdown-item:active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+    opacity: 0.1;
+}
+
+/* Dropdown Toggle Arrow */
+.dropdown-toggle::after {
+    transition: transform var(--transition-fast);
+}
+
+.dropdown-toggle:hover::after {
+    transform: rotate(180deg);
+}
+
+.dropdown.show .dropdown-toggle::after {
+    transform: rotate(180deg);
+}
+
+/* Welcome Text Animation */
+.nav-link .nav-link.text-light {
+    animation: fadeInRight 0.6s ease-out;
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Navbar Toggler Enhancement */
+.navbar-toggler {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all var(--transition-fast);
+}
+
+.navbar-toggler:hover {
+    border-color: white;
+    transform: rotate(90deg);
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+}
+
+/* Navbar Collapse Animation */
+.navbar-collapse {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 4. Enhanced Buttons
+   ========================================================================== */
+
+.btn {
+    font-weight: 500;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+    z-index: -1;
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-light {
+    background-color: white;
+    border-color: white;
+    color: var(--primary-color);
+}
+
+.btn-light:hover {
+    background-color: #f8f9fa;
+    border-color: #f8f9fa;
+    color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* 5. Form Enhancements
+   ========================================================================== */
+
+.form-control {
+    border-radius: var(--border-radius);
+    transition: all var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.25rem rgba(77, 182, 172, 0.25);
+    transform: translateY(-1px);
+}
+
+/* 6. Card Enhancements
+   ========================================================================== */
+
+.card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-medium);
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-img-top {
+    transition: transform var(--transition-slow);
+}
+
+.card:hover .card-img-top {
+    transform: scale(1.1);
+}
+
+/* 7. Footer
+   ========================================================================== */
+
+footer {
+    background-color: #fff;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 8. Utility Classes
+   ========================================================================== */
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 9. Responsive Design
+   ========================================================================== */
+
+@media (max-width: 992px) {
+    .navbar-nav {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .nav-link {
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-light {
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.3rem;
+    }
+
+    .navbar-brand i {
+        font-size: 1.5rem;
+    }
+}
+
+/* 10. Loading States & Micro-interactions
+   ========================================================================== */
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Hover effect for user greeting */
+.nav-link.text-light {
+    cursor: default;
+}
+
+.nav-link.text-light i {
+    transition: transform var(--transition-fast);
+}
+
+.nav-link.text-light:hover i {
+    transform: rotate(360deg);
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Selection styling */
+::selection {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+::-moz-selection {
+    background-color: var(--accent-color);
+    color: white;
+}

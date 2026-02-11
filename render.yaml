@@ -1,0 +1,74 @@
+# Render.com Blueprint for SilverCare Full Stack Deployment
+# Advanced Feature C & D: Cloud Deployment with Docker orchestration
+
+services:
+  # PostgreSQL Database (Shared by both apps)
+  - type: pserv
+    name: silvercare-db
+    env: docker
+    plan: free
+    region: singapore
+    imageRef: postgres:16-alpine
+    envVars:
+      - key: POSTGRES_DB
+        value: silvercare
+      - key: POSTGRES_USER
+        generateValue: true
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: silvercare-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+
+  # Spring Boot REST API (B2B Service)
+  - type: web
+    name: silvercare-api
+    env: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./silvercare-api
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: silvercare-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: silvercare-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: silvercare-db
+          property: password
+      - key: STRIPE_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: STRIPE_PUBLIC_KEY
+        sync: false
+    healthCheckPath: /actuator/health
+
+  # Tomcat Web Application (Main Website - MVC)
+  - type: web
+    name: silvercare-web
+    env: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./silvercare-web
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: silvercare-db
+          property: connectionString
+      - key: DB_USER
+        fromDatabase:
+          name: silvercare-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: silvercare-db
+          property: password
+      - key: STRIPE_PUBLIC_KEY
+        sync: false  # Set manually in Render dashboard
+    healthCheckPath: /

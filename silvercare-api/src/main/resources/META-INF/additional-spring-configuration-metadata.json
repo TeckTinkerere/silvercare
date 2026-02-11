@@ -1,0 +1,31 @@
+{
+  "properties": [
+    {
+      "name": "stripe.secret.key",
+      "type": "java.lang.String",
+      "description": "Stripe API secret key for server-side operations."
+    },
+    {
+      "name": "stripe.publishable.key",
+      "type": "java.lang.String",
+      "description": "Stripe API publishable key for client-side operations."
+    },
+    {
+      "name": "stripe.mock.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable mock mode for Stripe (for testing without real API).",
+      "defaultValue": false
+    },
+    {
+      "name": "stripe.webhook.secret",
+      "type": "java.lang.String",
+      "description": "Stripe webhook signing secret for event verification."
+    },
+    {
+      "name": "app.client.url",
+      "type": "java.lang.String",
+      "description": "Client application base URL for redirects and CORS.",
+      "defaultValue": "http://localhost:8080"
+    }
+  ]
+}
