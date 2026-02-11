@@ -1,43 +1,51 @@
 # Render.com Blueprint for SilverCare Full Stack Deployment
 # Advanced Feature C & D: Cloud Deployment with Docker orchestration
 
-databases:
+services:
   # PostgreSQL Database (Shared by both apps)
-  - name: silvercare-db
-    databaseName: silvercare
+  - type: pserv
+    name: silvercare-db
+    env: docker
     plan: free
     region: singapore
+    imageRef: postgres:16-alpine
+    envVars:
+      - key: POSTGRES_DB
+        value: silvercare
+      - key: POSTGRES_USER
+        generateValue: true
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: silvercare-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
 
-services:
   # Spring Boot REST API (B2B Service)
   - type: web
     name: silvercare-api
     env: docker
     region: singapore
     plan: free
-    dockerfilePath: ./silvercare-api/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: ./silvercare-api
     envVars:
-      - key: DB_URL
+      - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: silvercare-db
           property: connectionString
-      - key: DB_USER
+      - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: silvercare-db
           property: user
-      - key: DB_PASSWORD
+      - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
           name: silvercare-db
           property: password
       - key: STRIPE_SECRET_KEY
         sync: false  # Set manually in Render dashboard
-      - key: STRIPE_PUBLISHABLE_KEY
+      - key: STRIPE_PUBLIC_KEY
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: CLIENT_URL
-        value: https://silvercare-web.onrender.com
     healthCheckPath: /s-api/status
 
   # Tomcat Web Application (Main Website - MVC)
@@ -46,7 +54,7 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerfilePath: ./silvercare-web/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: ./silvercare-web
     envVars:
       - key: DB_URL
@@ -61,8 +69,6 @@ services:
         fromDatabase:
           name: silvercare-db
           property: password
-      - key: API_BASE_URL
-        value: https://silvercare-api.onrender.com/s-api
-      - key: STRIPE_PUBLISHABLE_KEY
+      - key: STRIPE_PUBLIC_KEY
         sync: false  # Set manually in Render dashboard
     healthCheckPath: /

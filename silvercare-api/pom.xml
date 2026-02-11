@@ -41,6 +41,12 @@
             <artifactId>gson</artifactId>
         </dependency>
 
+        <!-- Spring Boot Actuator for Health Checks -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- jBCrypt for Security -->
         <dependency>
             <groupId>org.mindrot</groupId>
