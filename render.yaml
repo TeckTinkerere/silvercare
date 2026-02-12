@@ -2,25 +2,6 @@
 # Advanced Feature C & D: Cloud Deployment with Docker orchestration
 
 services:
-  # PostgreSQL Database (Shared by both apps)
-  - type: pserv
-    name: silvercare-db
-    env: docker
-    plan: free
-    region: singapore
-    imageRef: postgres:16-alpine
-    envVars:
-      - key: POSTGRES_DB
-        value: silvercare
-      - key: POSTGRES_USER
-        generateValue: true
-      - key: POSTGRES_PASSWORD
-        generateValue: true
-    disk:
-      name: silvercare-data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
-
   # Spring Boot REST API (B2B Service)
   - type: web
     name: silvercare-api
@@ -30,20 +11,14 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: ./silvercare-api
     envVars:
-      - key: SPRING_DATASOURCE_URL
-        fromDatabase:
-          name: silvercare-db
-          property: connectionString
-      - key: SPRING_DATASOURCE_USERNAME
-        fromDatabase:
-          name: silvercare-db
-          property: user
-      - key: SPRING_DATASOURCE_PASSWORD
-        fromDatabase:
-          name: silvercare-db
-          property: password
+      - key: DB_URL
+        sync: false  # Provide your Neon URL (e.g. postgresql://...)
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
       - key: STRIPE_SECRET_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: STRIPE_PUBLIC_KEY
         sync: false
     healthCheckPath: /s-api/status
@@ -58,17 +33,11 @@ services:
     dockerContext: ./silvercare-web
     envVars:
       - key: DB_URL
-        fromDatabase:
-          name: silvercare-db
-          property: connectionString
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: silvercare-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: silvercare-db
-          property: password
+        sync: false
       - key: STRIPE_PUBLIC_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: false
     healthCheckPath: /
