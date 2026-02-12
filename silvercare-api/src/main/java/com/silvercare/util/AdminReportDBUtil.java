@@ -19,19 +19,19 @@ import org.springframework.stereotype.Component;
 public class AdminReportDBUtil {
 
     // SQL Statements for Admin Report operations
-    private static final String SELECT_TOP_CLIENTS = "SELECT c.full_name, c.email, SUM(b.total_amount) as total_spent "
+    private static final String SELECT_TOP_CLIENTS = "SELECT c.full_name, c.email, c.address, COUNT(b.booking_id) as booking_count, SUM(b.total_amount) as total_spent "
             +
             "FROM silvercare.customer c " +
             "JOIN silvercare.booking b ON c.customer_id = b.customer_id " +
-            "GROUP BY c.customer_id, c.full_name, c.email " +
+            "GROUP BY c.customer_id, c.full_name, c.email, c.address " +
             "ORDER BY total_spent DESC LIMIT 10";
 
     private static final String SELECT_SERVICE_RATINGS = "SELECT s.name, AVG(f.rating) as avg_rating, COUNT(f.feedback_id) as review_count "
             +
             "FROM silvercare.service s " +
-            "LEFT JOIN silvercare.feedback f ON s.service_id = f.service_id " +
+            "INNER JOIN silvercare.feedback f ON s.service_id = f.service_id " +
             "GROUP BY s.service_id, s.name " +
-            "ORDER BY avg_rating DESC NULLS LAST";
+            "ORDER BY avg_rating DESC";
 
     private static final String SELECT_BOOKINGS_BY_DATE_RANGE = "SELECT DATE(b.booking_date) as booking_date, COUNT(*) as booking_count, SUM(b.total_amount) as total_revenue "
             +
@@ -54,11 +54,11 @@ public class AdminReportDBUtil {
             "GROUP BY SUBSTRING(c.address, -6) " +
             "ORDER BY client_count DESC";
 
-    private static final String SELECT_MONTHLY_REVENUE = "SELECT YEAR(b.booking_date) as year, MONTH(b.booking_date) as month, "
+    private static final String SELECT_MONTHLY_REVENUE = "SELECT EXTRACT(YEAR FROM b.booking_date) as year, EXTRACT(MONTH FROM b.booking_date) as month, "
             +
             "COUNT(*) as booking_count, SUM(b.total_amount) as total_revenue " +
             "FROM silvercare.booking b " +
-            "GROUP BY YEAR(b.booking_date), MONTH(b.booking_date) " +
+            "GROUP BY EXTRACT(YEAR FROM b.booking_date), EXTRACT(MONTH FROM b.booking_date) " +
             "ORDER BY year DESC, month DESC LIMIT 12";
 
     /**
@@ -71,9 +71,11 @@ public class AdminReportDBUtil {
                 ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 Map<String, Object> client = new HashMap<>();
-                client.put("name", rs.getString("full_name"));
+                client.put("fullName", rs.getString("full_name"));
                 client.put("email", rs.getString("email"));
-                client.put("spent", rs.getBigDecimal("total_spent"));
+                client.put("address", rs.getString("address"));
+                client.put("bookingCount", rs.getInt("booking_count"));
+                client.put("totalSpent", rs.getBigDecimal("total_spent"));
                 clients.add(client);
             }
         }
@@ -90,9 +92,9 @@ public class AdminReportDBUtil {
                 ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 Map<String, Object> rating = new HashMap<>();
-                rating.put("service", rs.getString("name"));
-                rating.put("rating", rs.getDouble("avg_rating"));
-                rating.put("count", rs.getInt("review_count"));
+                rating.put("serviceName", rs.getString("name"));
+                rating.put("avgRating", rs.getDouble("avg_rating"));
+                rating.put("feedbackCount", rs.getInt("review_count"));
                 ratings.add(rating);
             }
         }
@@ -176,5 +178,40 @@ public class AdminReportDBUtil {
             }
         }
         return revenue;
+    }
+
+    /**
+     * Get quick dashboard statistics (counts and revenue)
+     * More efficient than loading all objects
+     */
+    public Map<String, Object> getDashboardQuickStats() throws SQLException {
+        Map<String, Object> stats = new HashMap<>();
+
+        String sql = "SELECT " +
+                "(SELECT COUNT(*) FROM silvercare.service) as service_count, " +
+                "(SELECT COUNT(*) FROM silvercare.booking) as booking_count, " +
+                "(SELECT COUNT(*) FROM silvercare.booking WHERE status IN ('Pending', 'Confirmed')) as pending_booking_count, "
+                +
+                "(SELECT COUNT(*) FROM silvercare.booking WHERE status = 'Completed') as completed_booking_count, " +
+                "(SELECT COALESCE(SUM(total_amount), 0) FROM silvercare.booking WHERE status IN ('Completed', 'Confirmed')) as total_revenue, "
+                +
+                "(SELECT COUNT(*) FROM silvercare.customer) as user_count, " +
+                "(SELECT COUNT(*) FROM silvercare.feedback) as feedback_count";
+
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                ResultSet rs = pstmt.executeQuery()) {
+
+            if (rs.next()) {
+                stats.put("serviceCount", rs.getInt("service_count"));
+                stats.put("bookingCount", rs.getInt("booking_count"));
+                stats.put("pendingBookings", rs.getInt("pending_booking_count"));
+                stats.put("completedBookings", rs.getInt("completed_booking_count"));
+                stats.put("totalRevenue", rs.getDouble("total_revenue"));
+                stats.put("userCount", rs.getInt("user_count"));
+                stats.put("feedbackCount", rs.getInt("feedback_count"));
+            }
+        }
+        return stats;
     }
 }

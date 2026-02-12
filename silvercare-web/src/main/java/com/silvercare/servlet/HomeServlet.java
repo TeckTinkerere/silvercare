@@ -7,25 +7,28 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import com.silvercare.dao.ServiceDAO;
+
+import com.silvercare.util.ApiClient;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Traditional Servlet for Home page - Uses JAX-RS Client to call REST APIs
+ * Servlet for Home page - Uses ApiClient to call REST APIs
  */
 @WebServlet({ "/home", "" })
 public class HomeServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
-    /**
-     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -38,10 +41,8 @@ public class HomeServlet extends HttpServlet {
         String showTutorial = request.getParameter("showTutorial");
         if (customerId != null) {
             if ("true".equals(showTutorial)) {
-                // Manual trigger from profile page
                 shouldShowTutorial = true;
             } else if (tutorialCompleted == null || !tutorialCompleted) {
-                // First-time user
                 shouldShowTutorial = true;
             }
         }
@@ -53,17 +54,27 @@ public class HomeServlet extends HttpServlet {
             request.setAttribute("accountDeleted", true);
         }
 
-        // Fetch Service Categories via local DAO
+        // --- 3. Fetch Service Categories via REST API ---
         try {
-            ServiceDAO serviceDAO = new ServiceDAO();
-            List<Map<String, Object>> allCategories = serviceDAO.getAllCategories();
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/services/categories", String.class);
 
-            // Take top 3 categories
-            List<Map<String, Object>> topCategories = allCategories.stream()
-                    .limit(3)
-                    .collect(Collectors.toList());
+            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                JsonArray dataArray = json.getAsJsonArray("data");
 
-            request.setAttribute("categories", topCategories);
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> allCategories = gson.fromJson(dataArray, listType);
+
+                // Take top 3 categories
+                List<Map<String, Object>> topCategories = allCategories.stream()
+                        .limit(3)
+                        .collect(Collectors.toList());
+
+                request.setAttribute("categories", topCategories);
+            } else {
+                request.setAttribute("categories", new ArrayList<>());
+            }
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("categories", new ArrayList<>());
@@ -74,10 +85,6 @@ public class HomeServlet extends HttpServlet {
         dispatcher.forward(request, response);
     }
 
-    /**
-     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         doGet(request, response);

@@ -19,7 +19,7 @@ public class ServiceDBUtil {
 
     private static final String SELECT_ALL_SERVICES = "SELECT s.*, c.name as category_name FROM silvercare.service s " +
             "LEFT JOIN silvercare.service_category c ON s.category_id = c.category_id " +
-            "WHERE s.is_active = true ORDER BY c.name, s.name";
+            "ORDER BY c.name, s.name";
 
     private static final String SELECT_SERVICE_BY_ID = "SELECT s.*, c.name as category_name FROM silvercare.service s "
             + "LEFT JOIN silvercare.service_category c ON s.category_id = c.category_id " +
@@ -29,11 +29,11 @@ public class ServiceDBUtil {
 
     private static final String SEARCH_SERVICES = "SELECT s.*, c.name as category_name FROM silvercare.service s " +
             "LEFT JOIN silvercare.service_category c ON s.category_id = c.category_id " +
-            "WHERE (s.name ILIKE ? OR s.description ILIKE ?) AND s.is_active = true";
+            "WHERE (s.name ILIKE ? OR s.description ILIKE ?)";
 
-    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path, is_active) VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path) VALUES (?, ?, ?, ?, ?)";
 
-    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ?, is_active = ? WHERE service_id = ?";
+    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ? WHERE service_id = ?";
 
     private static final String DELETE_SERVICE = "DELETE FROM silvercare.service WHERE service_id = ?";
 
@@ -107,7 +107,6 @@ public class ServiceDBUtil {
             pstmt.setString(3, s.getDescription());
             pstmt.setBigDecimal(4, s.getPrice());
             pstmt.setString(5, s.getImagePath());
-            pstmt.setBoolean(6, s.isActive());
             pstmt.executeUpdate();
         }
     }
@@ -120,8 +119,7 @@ public class ServiceDBUtil {
             pstmt.setString(3, s.getDescription());
             pstmt.setBigDecimal(4, s.getPrice());
             pstmt.setString(5, s.getImagePath());
-            pstmt.setBoolean(6, s.isActive());
-            pstmt.setInt(7, s.getId());
+            pstmt.setInt(6, s.getId());
             pstmt.executeUpdate();
         }
     }
@@ -160,7 +158,6 @@ public class ServiceDBUtil {
         s.setDescription(rs.getString("description"));
         s.setPrice(rs.getBigDecimal("price"));
         s.setImagePath(rs.getString("image_path"));
-        s.setActive(rs.getBoolean("is_active"));
 
         try {
             s.setCategoryName(rs.getString("category_name"));

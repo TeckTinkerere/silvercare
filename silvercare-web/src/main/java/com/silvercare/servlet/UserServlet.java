@@ -1,55 +1,48 @@
 package com.silvercare.servlet;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import com.silvercare.dao.UserDAO;
+
+import com.silvercare.util.ApiClient;
+import com.silvercare.model.User;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Traditional Servlet for User operations - Uses local UserDAO with JDBC
- * Refactored to comply with MVC requirements (Topic 6)
+ * Servlet for User operations - Uses ApiClient to call REST APIs
+ * Handles login, registration, profile update, tutorial completion, and logout.
  */
-@WebServlet({ "/UserServlet", "/logout", "/user/tutorial/complete" })
+@WebServlet("/UserServlet")
 public class UserServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
-    /**
-     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String action = request.getParameter("action");
 
-        if ("logout".equals(action) || "/logout".equals(request.getServletPath())) {
+        if ("logout".equals(action)) {
             handleLogout(request, response);
         } else {
             response.sendRedirect(request.getContextPath() + "/home");
         }
     }
 
-    /**
-     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String action = request.getParameter("action");
-        String servletPath = request.getServletPath();
 
-        if (action == null && !"/user/tutorial/complete".equals(servletPath)) {
-            response.sendRedirect(request.getContextPath() + "/FrontEnd/home.jsp");
-            return;
-        }
-
-        if ("/user/tutorial/complete".equals(servletPath)) {
-            handleCompleteTutorial(request, response);
-            return;
+        if (action == null) {
+            action = "";
         }
 
         switch (action) {
@@ -72,169 +65,224 @@ public class UserServlet extends HttpServlet {
     }
 
     /**
-     * Handle user login
+     * Handle Login via REST API
      */
     private void handleLogin(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
 
-        try {
-            UserDAO userDAO = new UserDAO();
-            com.silvercare.model.User user = userDAO.authenticate(email, password);
+        if (email == null || email.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+            request.setAttribute("error", "Email and password are required");
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/login.jsp");
+            dispatcher.forward(request, response);
+            return;
+        }
 
-            if (user != null) {
-                // Set session attributes
-                HttpSession session = request.getSession();
-                session.setAttribute("user", user);
-                session.setAttribute("user_id", user.getId());
-                session.setAttribute("customer_id", user.getId()); // Valid for customers, removed for admin below
-                session.setAttribute("cart_count", 0); // Initialize cart count
+        // Call REST API via ApiClient
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("email", email.trim());
+        credentials.put("password", password);
 
-                String role = user.getRole();
-                session.setAttribute("role", role); // Set role for LoginFilter
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.post("/users/login", credentials, String.class);
 
-                if ("admin".equalsIgnoreCase(role)) {
-                    session.setAttribute("admin_id", user.getId());
-                    // Cleanup customer attributes for admin purity if desired, but keeping session
-                    // flexible
-                    response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            try {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                User user = gson.fromJson(json.getAsJsonObject("user"), User.class);
+
+                if (user != null) {
+                    HttpSession session = request.getSession(true);
+                    Integer userId = user.getId();
+
+                    session.setAttribute("user", user);
+                    session.setAttribute("userId", userId);
+                    session.setAttribute("sessUserID", userId);
+                    session.setAttribute("username", user.getFullName());
+                    session.setAttribute("userRole", user.getRole());
+                    session.setAttribute("role", user.getRole());
+                    session.setAttribute("tutorial_completed", user.isTutorialCompleted());
+
+                    String role = user.getRole();
+                    if ("admin".equalsIgnoreCase(role)) {
+                        session.setAttribute("admin_id", userId);
+                        session.setAttribute("admin_name", user.getFullName());
+                        session.removeAttribute("customer_id");
+                        response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+                    } else {
+                        session.setAttribute("customer_id", userId);
+                        session.setAttribute("customer_name", user.getFullName());
+                        session.setAttribute("profile_picture", user.getProfilePicture());
+                        session.removeAttribute("admin_id");
+                        response.sendRedirect(request.getContextPath() + "/home");
+                    }
                     return;
                 }
-
-                boolean tutorialCompleted = user.isTutorialCompleted();
-                // Explicitly set the session attribute expected by HomeServlet
-                session.setAttribute("tutorial_completed", tutorialCompleted);
-
-                // Redirect to home or tutorial (Customer flow)
-                if (!tutorialCompleted) {
-                    response.sendRedirect(request.getContextPath() + "/FrontEnd/tutorial.jsp");
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/home");
-                }
-            } else {
-                // Login failed - redirect back to login page with error
-                // Use a proper error parameter
-                response.sendRedirect(request.getContextPath()
-                        + "/FrontEnd/login.jsp?error=invalid");
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath()
-                    + "/FrontEnd/login.jsp?error=system_error");
         }
+
+        // Login failed
+        request.setAttribute("error", "Invalid email or password");
+        RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/login.jsp");
+        dispatcher.forward(request, response);
     }
 
     /**
-     * Handle user registration
+     * Handle Registration via REST API
      */
     private void handleRegister(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String password = request.getParameter("password");
-        String fullName = request.getParameter("fullname");
-        String phone = request.getParameter("phone");
-        String address = request.getParameter("address");
-
-        try {
-            com.silvercare.model.User user = new com.silvercare.model.User();
-            user.setEmail(email);
-            user.setFullName(fullName);
-            user.setPhone(phone);
-            user.setAddress(address);
-
-            UserDAO userDAO = new UserDAO();
-            userDAO.register(user, password);
-
-            // Registration successful - redirect to login page
-            response.sendRedirect(request.getContextPath()
-                    + "/FrontEnd/login.jsp?success=registered");
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Registration failed - redirect back to registration page with error
-            response.sendRedirect(request.getContextPath()
-                    + "/FrontEnd/register.jsp?error=registration_failed&message="
-                    + java.net.URLEncoder.encode(e.getMessage(), "UTF-8"));
-        }
-    }
-
-    /**
-     * Handle profile update
-     */
-    private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        com.silvercare.model.User user = (com.silvercare.model.User) session.getAttribute("user");
-
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
-        }
-
-        String fullName = request.getParameter("full_name");
         String phone = request.getParameter("phone");
         String address = request.getParameter("address");
         String gender = request.getParameter("gender");
-        String medicalInfo = request.getParameter("medical_info");
 
-        try {
-            user.setFullName(fullName);
-            user.setPhone(phone);
-            user.setAddress(address);
-            user.setGender(gender);
-            user.setMedicalInfo(medicalInfo);
-
-            UserDAO userDAO = new UserDAO();
-            userDAO.updateProfile(user);
-
-            // Session object is updated by reference, but re-setting just in case
-            session.setAttribute("user", user);
-
-            response.sendRedirect(request.getContextPath() + "/FrontEnd/profile.jsp?update=success");
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + "/FrontEnd/profile.jsp?error=update_failed");
-        }
-    }
-
-    /**
-     * Handle tutorial completion
-     */
-    private void handleCompleteTutorial(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        com.silvercare.model.User user = (com.silvercare.model.User) session.getAttribute("user");
-
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+        // Validate required fields
+        if (fullName == null || email == null || password == null ||
+                fullName.trim().isEmpty() || email.trim().isEmpty() || password.trim().isEmpty()) {
+            request.setAttribute("error", "Full name, email, and password are required");
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/register.jsp");
+            dispatcher.forward(request, response);
             return;
         }
 
-        try {
-            UserDAO userDAO = new UserDAO();
-            userDAO.updateTutorialStatus(user.getId(), true);
+        // Build registration request body as a Map (since User.password is transient
+        // for Gson)
+        Map<String, String> regData = new HashMap<>();
+        regData.put("fullName", fullName.trim());
+        regData.put("email", email.trim());
+        regData.put("password", password);
+        if (phone != null && !phone.trim().isEmpty())
+            regData.put("phone", phone.trim());
+        if (address != null && !address.trim().isEmpty())
+            regData.put("address", address.trim());
+        if (gender != null && !gender.trim().isEmpty())
+            regData.put("gender", gender.trim());
 
-            // Update session to mark tutorial as completed
-            user.setTutorialCompleted(true);
-            session.setAttribute("user", user);
-            // Explicitly update the session attribute expected by HomeServlet
-            session.setAttribute("tutorial_completed", true);
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.post("/users/register", regData, String.class);
 
-            // Redirect to home page instead of returning JSON
-            response.sendRedirect(request.getContextPath() + "/home");
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + "/FrontEnd/tutorial.jsp?error=true");
+        if (apiResponse.isSuccess()) {
+            // Registration successful, redirect to login
+            response.sendRedirect(request.getContextPath() + "/FrontEnd/login.jsp?registered=true");
+        } else {
+            String errorMsg = "Registration failed";
+            if (apiResponse.getError() != null) {
+                try {
+                    JsonObject errorJson = gson.fromJson(apiResponse.getError(), JsonObject.class);
+                    if (errorJson.has("error")) {
+                        errorMsg = errorJson.get("error").getAsString();
+                    }
+                } catch (Exception e) {
+                    // Use default error message
+                }
+            }
+            request.setAttribute("error", errorMsg);
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/register.jsp");
+            dispatcher.forward(request, response);
         }
     }
 
     /**
-     * Handle user logout
+     * Handle Profile Update via REST API
+     */
+    private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            response.sendRedirect(request.getContextPath() + "/FrontEnd/login.jsp");
+            return;
+        }
+
+        User currentUser = (User) session.getAttribute("user");
+
+        String fullName = request.getParameter("fullName");
+        String email = request.getParameter("email");
+        String phone = request.getParameter("phone");
+        String address = request.getParameter("address");
+
+        // Build update request body
+        Map<String, Object> updateData = new HashMap<>();
+        updateData.put("id", currentUser.getId());
+        updateData.put("fullName", fullName != null ? fullName.trim() : currentUser.getFullName());
+        updateData.put("email", email != null ? email.trim() : currentUser.getEmail());
+        updateData.put("phone", phone != null ? phone.trim() : currentUser.getPhone());
+        updateData.put("address", address != null ? address.trim() : currentUser.getAddress());
+
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.put("/users/profile", updateData, String.class);
+
+        if (apiResponse.isSuccess()) {
+            // Update session with new user data
+            try {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                if (json.has("user")) {
+                    User updatedUser = gson.fromJson(json.getAsJsonObject("user"), User.class);
+                    session.setAttribute("user", updatedUser);
+                    session.setAttribute("username", updatedUser.getFullName());
+                } else {
+                    // Manually update local user object
+                    currentUser.setFullName((String) updateData.get("fullName"));
+                    currentUser.setEmail((String) updateData.get("email"));
+                    currentUser.setPhone((String) updateData.get("phone"));
+                    currentUser.setAddress((String) updateData.get("address"));
+                    session.setAttribute("user", currentUser);
+                    session.setAttribute("username", currentUser.getFullName());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            request.setAttribute("success", "Profile updated successfully");
+        } else {
+            request.setAttribute("error", "Failed to update profile");
+        }
+
+        RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/profile.jsp");
+        dispatcher.forward(request, response);
+    }
+
+    /**
+     * Handle Tutorial Completion via REST API
+     */
+    private void handleCompleteTutorial(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            response.sendRedirect(request.getContextPath() + "/FrontEnd/login.jsp");
+            return;
+        }
+
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null) {
+            userId = (Integer) session.getAttribute("customer_id");
+        }
+
+        if (userId != null) {
+            Map<String, Integer> requestBody = new HashMap<>();
+            requestBody.put("userId", userId);
+
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.post("/users/tutorial/complete", requestBody,
+                    String.class);
+
+            if (apiResponse.isSuccess()) {
+                session.setAttribute("tutorial_completed", true);
+            }
+        }
+
+        response.sendRedirect(request.getContextPath() + "/home");
+    }
+
+    /**
+     * Handle Logout (session invalidation only - no API call needed)
      */
     private void handleLogout(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        session.invalidate();
-        response.sendRedirect(request.getContextPath() + "/login?logout=success");
+            throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        response.sendRedirect(request.getContextPath() + "/home");
     }
 }

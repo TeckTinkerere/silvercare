@@ -21,17 +21,15 @@ import com.silvercare.model.Service;
 public class ServiceDBUtil {
 
     // SQL Statements for Service operations
-    private static final String SELECT_ALL_SERVICES = "SELECT * FROM silvercare.service WHERE is_active = true ORDER BY category_id, name";
-
-    private static final String SELECT_SERVICE_BY_ID = "SELECT * FROM silvercare.service WHERE service_id = ?";
+    private static final String SELECT_ALL_SERVICES = "SELECT * FROM silvercare.service ORDER BY category_id, name";
 
     private static final String SELECT_ALL_CATEGORIES = "SELECT * FROM silvercare.service_category ORDER BY name";
 
-    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path, is_active) VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path) VALUES (?, ?, ?, ?, ?)";
 
-    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ?, is_active = ? WHERE service_id = ?";
+    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ? WHERE service_id = ?";
 
-    private static final String DELETE_SERVICE = "UPDATE silvercare.service SET is_active = false WHERE service_id = ?";
+    private static final String DELETE_SERVICE = "DELETE FROM silvercare.service WHERE service_id = ?";
 
     private static final String INSERT_CATEGORY = "INSERT INTO silvercare.service_category (name, description, icon) VALUES (?, ?, ?)";
 
@@ -39,9 +37,9 @@ public class ServiceDBUtil {
 
     private static final String DELETE_CATEGORY = "DELETE FROM silvercare.service_category WHERE category_id = ?";
 
-    private static final String SELECT_SERVICES_BY_CATEGORY = "SELECT * FROM silvercare.service WHERE category_id = ? AND is_active = true ORDER BY name";
+    private static final String SELECT_SERVICES_BY_CATEGORY = "SELECT * FROM silvercare.service WHERE category_id = ? ORDER BY name";
 
-    private static final String SEARCH_SERVICES = "SELECT * FROM silvercare.service WHERE (name LIKE ? OR description LIKE ?) AND is_active = true ORDER BY name";
+    private static final String SEARCH_SERVICES = "SELECT * FROM silvercare.service WHERE (name LIKE ? OR description LIKE ?) ORDER BY name";
 
     /**
      * Retrieve all active services
@@ -59,15 +57,29 @@ public class ServiceDBUtil {
     }
 
     /**
-     * Retrieve service by ID
+     * Retrieve service by ID with category name
      */
     public Service getServiceById(int serviceId) throws SQLException {
+        String sql = "SELECT s.*, c.name as category_name FROM silvercare.service s " +
+                "LEFT JOIN silvercare.service_category c ON s.category_id = c.category_id " +
+                "WHERE s.service_id = ?";
+
         try (Connection conn = DBConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(SELECT_SERVICE_BY_ID)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, serviceId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToService(rs);
+                    Service service = mapResultSetToService(rs);
+                    // Try to get category_name from the result set
+                    try {
+                        String categoryName = rs.getString("category_name");
+                        if (categoryName != null) {
+                            service.setCategoryName(categoryName);
+                        }
+                    } catch (SQLException e) {
+                        // Column doesn't exist, ignore
+                    }
+                    return service;
                 }
             }
         }
@@ -98,6 +110,14 @@ public class ServiceDBUtil {
      * Add new service to database
      */
     public boolean addService(Service service) throws SQLException {
+        System.out.println("=== ServiceDBUtil.addService ===");
+        System.out.println("Service: " + service);
+        System.out.println("Category ID: " + service.getCategoryId());
+        System.out.println("Name: " + service.getName());
+        System.out.println("Description: " + service.getDescription());
+        System.out.println("Price: " + service.getPrice());
+        System.out.println("Image Path: " + service.getImagePath());
+
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(INSERT_SERVICE)) {
             pstmt.setInt(1, service.getCategoryId());
@@ -105,8 +125,16 @@ public class ServiceDBUtil {
             pstmt.setString(3, service.getDescription());
             pstmt.setBigDecimal(4, service.getPrice());
             pstmt.setString(5, service.getImagePath());
-            pstmt.setBoolean(6, service.isActive());
-            return pstmt.executeUpdate() > 0;
+
+            System.out.println("Executing SQL: " + INSERT_SERVICE);
+            int rowsAffected = pstmt.executeUpdate();
+            System.out.println("Rows affected: " + rowsAffected);
+
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.out.println("SQLException in addService: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -121,8 +149,7 @@ public class ServiceDBUtil {
             pstmt.setString(3, service.getDescription());
             pstmt.setBigDecimal(4, service.getPrice());
             pstmt.setString(5, service.getImagePath());
-            pstmt.setBoolean(6, service.isActive());
-            pstmt.setInt(7, service.getId());
+            pstmt.setInt(6, service.getId());
             return pstmt.executeUpdate() > 0;
         }
     }
@@ -176,9 +203,10 @@ public class ServiceDBUtil {
 
     public List<Service> getAllServicesWithCategory() throws SQLException {
         List<Service> services = new ArrayList<>();
+        // Admin should see ALL services, not just active ones
         String sql = "SELECT s.*, c.name as category_name FROM silvercare.service s " +
                 "LEFT JOIN silvercare.service_category c ON s.category_id = c.category_id " +
-                "WHERE s.is_active = true ORDER BY s.service_id";
+                "ORDER BY s.service_id";
 
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -238,7 +266,6 @@ public class ServiceDBUtil {
         service.setDescription(rs.getString("description"));
         service.setPrice(rs.getBigDecimal("price"));
         service.setImagePath(rs.getString("image_path"));
-        service.setActive(rs.getBoolean("is_active"));
         return service;
     }
 }

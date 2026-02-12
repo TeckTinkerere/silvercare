@@ -7,18 +7,16 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-/**
- * Utility class for managing JDBC connections for the Main Web App.
- * This ensures the Main Website connects directly to the DB via JDBC,
- * fulfilling the MVC marking criteria (Servlet -> DAO -> JDBC).
- */
 public class DBConnection {
 
     private static Properties props = new Properties();
 
     static {
         try (InputStream in = DBConnection.class.getResourceAsStream("/db.properties")) {
+            // If loaded from WEB-INF/classes, it should be at root of classpath
             if (in == null) {
+                // Fallback: try loading from context class loader if running in different
+                // environment
                 InputStream in2 = Thread.currentThread().getContextClassLoader().getResourceAsStream("db.properties");
                 if (in2 != null) {
                     props.load(in2);
@@ -35,22 +33,16 @@ public class DBConnection {
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-            throw new RuntimeException("Failed to initialize DBConnection utility", e);
+            throw new RuntimeException("Failed to initialize DBConnection details", e);
         }
     }
 
     public static Connection getConnection() throws SQLException {
-        // Preference: Environment Variables (e.g. for Render deployment)
+        // Advanced: Use Environment Variables first (for Render/Production)
+        // Fallback to db.properties for local development
         String url = System.getenv("DB_URL");
-        if (url == null) {
+        if (url == null)
             url = props.getProperty("jdbc.url");
-        }
-
-        // Sanitization: Render provides "postgresql://..." but JDBC requires
-        // "jdbc:postgresql://..."
-        if (url != null && url.startsWith("postgresql://")) {
-            url = "jdbc:" + url;
-        }
 
         String user = System.getenv("DB_USER");
         if (user == null)
@@ -60,17 +52,7 @@ public class DBConnection {
         if (password == null)
             password = props.getProperty("jdbc.password");
 
-        // Explicitly load the driver for environments like Render/Docker
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            System.err.println("DBConnection: PostgreSQL JDBC Driver not found.");
-        }
-
+        System.out.println("DBConnection: Connecting to " + url + " as " + user);
         return DriverManager.getConnection(url, user, password);
-    }
-
-    public static String getProperty(String key) {
-        return props.getProperty(key);
     }
 }

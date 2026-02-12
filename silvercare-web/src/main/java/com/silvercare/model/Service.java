@@ -1,6 +1,7 @@
 package com.silvercare.model;
 
 import java.math.BigDecimal;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * Service model for the Main Web App.
@@ -8,12 +9,14 @@ import java.math.BigDecimal;
  */
 public class Service {
     private int id;
+
+    @SerializedName(value = "categoryId", alternate = { "category_id" })
     private int categoryId;
+
     private String name;
     private String description;
     private BigDecimal price;
     private String imagePath;
-    private boolean isActive;
 
     // Transient field for display
     private String categoryName;
@@ -65,14 +68,6 @@ public class Service {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
-    }
-
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean isActive) {
-        this.isActive = isActive;
     }
 
     public String getCategoryName() {

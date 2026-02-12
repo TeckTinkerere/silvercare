@@ -19,11 +19,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.silvercare.model.Booking;
 import com.silvercare.model.BookingDetail;
 import com.silvercare.dao.BookingDAO;
+import com.silvercare.service.AuditLogService;
 import com.stripe.Stripe;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
@@ -38,6 +40,12 @@ public class BookingRestController {
 
     @Autowired
     private BookingDAO bookingDAO;
+
+    @Autowired
+    private com.silvercare.dao.ServiceDAO serviceDAO;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
@@ -115,13 +123,49 @@ public class BookingRestController {
                     ? (Map<String, Object>) requestData.get("booking")
                     : requestData;
 
-            // Convert map to Booking object (assuming conversion logic exists)
+            // Convert map to Booking object
             Booking booking = convertMapToBooking(bookingData);
 
             if (booking.getCustomerId() == 0) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Customer ID is required"));
             }
+
+            // ---------------------------------------------------------
+            // SECURITY FIX: Recalculate Total Amount on Backend
+            // ---------------------------------------------------------
+            BigDecimal calculatedSubtotal = BigDecimal.ZERO;
+
+            if (booking.getDetails() != null) {
+                for (BookingDetail detail : booking.getDetails()) {
+                    com.silvercare.model.Service service = serviceDAO.getServiceById(detail.getServiceId());
+                    if (service != null) {
+                        BigDecimal price = service.getPrice();
+                        BigDecimal lineTotal = price.multiply(new BigDecimal(detail.getQuantity()));
+
+                        // Update detail unit price to match current DB price (optional, but good for
+                        // consistency)
+                        detail.setUnitPrice(price);
+
+                        calculatedSubtotal = calculatedSubtotal.add(lineTotal);
+                    } else {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "Invalid Service ID: " + detail.getServiceId()));
+                    }
+                }
+            }
+
+            // Calculate GST (9%) and Total on backend
+            BigDecimal gstRate = new BigDecimal("0.09");
+            BigDecimal gstAmount = calculatedSubtotal.multiply(gstRate);
+            BigDecimal totalAmount = calculatedSubtotal.add(gstAmount);
+
+            // Enforce backend-calculated values
+            booking.setTotalAmount(totalAmount);
+            booking.setGstAmount(gstAmount);
+
+            System.out
+                    .println("✅ Backend calculated total: " + totalAmount + " (Subtotal: " + calculatedSubtotal + ")");
 
             // Optional: Verify payment if paymentIntentId is provided
             if (paymentIntentId != null && !paymentIntentId.isEmpty()) {
@@ -132,6 +176,19 @@ public class BookingRestController {
                         return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
                                 .body(Map.of("error", "Payment NOT successful. Status: " + intent.getStatus()));
                     }
+
+                    // Optional: Check if paid amount matches calculated amount
+                    long paidAmount = intent.getAmount(); // in cents
+                    long expectedAmount = totalAmount.multiply(new BigDecimal("100")).longValue();
+
+                    // Allow small tolerance? Or exact match?
+                    // Stripe amount is integer cents.
+                    if (Math.abs(paidAmount - expectedAmount) > 5) { // 5 cents tolerance for rounding diffs
+                        System.out.println("⚠️ Warning: Payment amount (" + paidAmount + ") differs from calculated ("
+                                + expectedAmount + ")");
+                        // potentially reject or flag
+                    }
+
                     booking.setStatus("Confirmed");
                 } catch (Exception e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -143,7 +200,8 @@ public class BookingRestController {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Booking created successfully",
-                    "bookingId", bookingId));
+                    "bookingId", bookingId,
+                    "finalAmount", totalAmount));
         } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -156,17 +214,53 @@ public class BookingRestController {
     }
 
     /**
-     * Create a Stripe PaymentIntent
+     * Create a Stripe PaymentIntent with server-side price calculation
      * POST /api/bookings/create-payment-intent
+     * Body: { "items": [ {"serviceId": 1, "quantity": 2}, ... ], "currency": "sgd"
+     * }
      */
     @PostMapping("/create-payment-intent")
     public ResponseEntity<?> createPaymentIntent(@RequestBody Map<String, Object> request) {
         try {
-            Double amount = Double.parseDouble(request.get("amount").toString());
             String currency = request.get("currency") != null ? request.get("currency").toString() : "sgd";
 
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> items = (List<Map<String, Object>>) request.get("items");
+
+            if (items == null || items.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No items provided"));
+            }
+
+            BigDecimal subtotal = BigDecimal.ZERO;
+
+            // Calculate total from DB prices
+            for (Map<String, Object> item : items) {
+                int serviceId = ((Number) item.get("serviceId")).intValue();
+                int quantity = ((Number) item.get("quantity")).intValue();
+
+                com.silvercare.model.Service service = serviceDAO.getServiceById(serviceId);
+                if (service != null) {
+                    subtotal = subtotal.add(service.getPrice().multiply(new BigDecimal(quantity)));
+                }
+            }
+
+            // Add 9% GST and round to 2 decimal places (cents)
+            BigDecimal totalWithGst = subtotal.multiply(new BigDecimal("1.09")).setScale(2,
+                    java.math.RoundingMode.HALF_UP);
+
             // Amount in cents
-            long amountInCents = Math.round(amount * 100);
+            long amountInCents = totalWithGst.multiply(new BigDecimal("100")).longValue();
+
+            // Log for debugging
+            System.out.println("Creating payment intent (Backend Calc) - Amount: $" + totalWithGst + " ("
+                    + amountInCents + " cents)");
+
+            // Stripe requires minimum 50 cents for SGD
+            if (amountInCents < 50) {
+                System.out.println(
+                        "WARNING: Amount too small (" + amountInCents + " cents). Using minimum 50 cents for testing.");
+                amountInCents = 50;
+            }
 
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amountInCents)
@@ -181,7 +275,8 @@ public class BookingRestController {
 
             return ResponseEntity.ok(Map.of(
                     "clientSecret", intent.getClientSecret(),
-                    "paymentIntentId", intent.getId()));
+                    "paymentIntentId", intent.getId(),
+                    "amount", totalWithGst));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -204,10 +299,33 @@ public class BookingRestController {
 
             if (data.containsKey("bookingDate")) {
                 Object dateObj = data.get("bookingDate");
+                System.out.println(
+                        "DEBUG: bookingDate type: " + (dateObj != null ? dateObj.getClass().getName() : "null"));
+                System.out.println("DEBUG: bookingDate value: " + dateObj);
+
                 if (dateObj instanceof Timestamp) {
                     booking.setBookingDate((Timestamp) dateObj);
                 } else if (dateObj instanceof String) {
-                    booking.setBookingDate(Timestamp.valueOf((String) dateObj));
+                    String dateStr = (String) dateObj;
+                    try {
+                        // Try parsing as full timestamp: yyyy-MM-dd HH:mm:ss
+                        System.out.println("DEBUG: Attempting to parse timestamp: " + dateStr);
+                        booking.setBookingDate(Timestamp.valueOf(dateStr));
+                        System.out.println("DEBUG: Successfully parsed timestamp");
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("DEBUG: Failed to parse, trying to add default time");
+                        // If that fails, try adding default time
+                        if (!dateStr.contains(" ")) {
+                            dateStr = dateStr + " 00:00:00";
+                            System.out.println("DEBUG: Modified dateStr: " + dateStr);
+                            booking.setBookingDate(Timestamp.valueOf(dateStr));
+                        } else {
+                            System.err.println("ERROR: Could not parse timestamp: " + dateStr);
+                            throw new IllegalArgumentException(
+                                    "Invalid timestamp format: " + dateStr + ". Expected format: yyyy-MM-dd HH:mm:ss",
+                                    e);
+                        }
+                    }
                 } else if (dateObj instanceof Long) {
                     booking.setBookingDate(new Timestamp((Long) dateObj));
                 }
@@ -292,7 +410,8 @@ public class BookingRestController {
     @PostMapping("/{id}/status")
     public ResponseEntity<?> updateBookingStatus(
             @PathVariable("id") int bookingId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             String status = request.get("status");
             if (status == null || status.isEmpty()) {
@@ -302,6 +421,10 @@ public class BookingRestController {
 
             boolean success = bookingDAO.updateBookingStatus(bookingId, status);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "UPDATE_BOOKING_STATUS",
+                            "Booking ID: " + bookingId + ", Status: " + status);
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Booking status updated"));

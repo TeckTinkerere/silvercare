@@ -59,6 +59,13 @@ public class BookingDAO {
     }
 
     /**
+     * Get recent bookings - delegates to utility bean
+     */
+    public List<Booking> getRecentBookings(int limit) throws SQLException {
+        return bookingDBUtil.getRecentBookings(limit);
+    }
+
+    /**
      * Update booking status - delegates to utility bean
      */
     public boolean updateBookingStatus(int bookingId, String status) throws SQLException {

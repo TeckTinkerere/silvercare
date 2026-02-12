@@ -28,57 +28,29 @@
         <!-- Custom Stylesheet -->
         <link rel="stylesheet" href="${pageContext.request.contextPath}/FrontEnd/styles.css">
 
-        <!-- Enhanced Header Styles -->
+        <!-- Custom Header Overrides -->
         <style>
-            /* Brand Icon Wrapper with Pulse Animation */
-            .brand-icon-wrapper {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+            .navbar-brand {
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            .nav-link.active {
+                font-weight: 600;
+                color: #fff !important;
+                border-bottom: 2px solid var(--accent-color);
+            }
+
+            /* Fix oversized avatar images */
+            .user-avatar {
                 width: 40px;
                 height: 40px;
-                background: rgba(255, 255, 255, 0.15);
                 border-radius: 50%;
-                transition: all var(--transition-medium);
-            }
-
-            .navbar-brand:hover .brand-icon-wrapper {
-                background: rgba(255, 255, 255, 0.25);
-                transform: scale(1.1);
-            }
-
-            .brand-icon-wrapper i {
-                font-size: 1.25rem;
-            }
-
-            .brand-text {
-                font-size: 1.5rem;
-                position: relative;
-            }
-
-            /* User Avatar Styling */
-            .user-avatar {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 32px;
-                height: 32px;
-                background: rgba(255, 255, 255, 0.2);
-                border-radius: 50%;
-                transition: all var(--transition-fast);
                 overflow: hidden;
+                flex-shrink: 0;
             }
 
-            .user-dropdown:hover .user-avatar {
-                background: rgba(255, 255, 255, 0.3);
-                transform: scale(1.05);
-            }
-
-            .user-avatar i {
-                font-size: 1.25rem;
-            }
-
-            /* Profile Picture Image Styling */
+            .user-avatar img,
             .profile-picture-img {
                 width: 100%;
                 height: 100%;
@@ -86,209 +58,46 @@
                 border-radius: 50%;
             }
 
-            /* Dropdown Profile Picture Styling */
             .dropdown-profile-picture {
-                width: 40px;
-                height: 40px;
+                width: 45px;
+                height: 45px;
+                border-radius: 50%;
                 object-fit: cover;
-                border-radius: 50%;
-                border: 2px solid var(--primary-color);
-            }
-
-            /* Admin Badge Styling */
-            .admin-badge {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 32px;
-                height: 32px;
-                background: rgba(255, 215, 0, 0.2);
-                border-radius: 50%;
-                transition: all var(--transition-fast);
-            }
-
-            .admin-dropdown:hover .admin-badge {
-                background: rgba(255, 215, 0, 0.3);
-                transform: scale(1.05);
             }
 
             .admin-badge i {
-                font-size: 1.25rem;
-                color: #ffd700;
+                object-fit: cover;
             }
 
-            /* Enhanced Dropdown Menu */
+            /* Fix dropdown z-index to appear above page content */
             .dropdown-menu {
-                min-width: 250px;
-                border-radius: var(--border-radius-lg);
-                padding: 0.5rem 0;
-                animation: slideDown 0.3s ease-out;
+                z-index: 1050 !important;
             }
 
-            .dropdown-header {
-                background: linear-gradient(135deg, rgba(91, 124, 153, 0.05) 0%, rgba(77, 182, 172, 0.05) 100%);
-                border-radius: var(--border-radius);
-                margin: 0.25rem 0.5rem;
+            .navbar {
+                z-index: 1040;
             }
-
-            .dropdown-item {
-                transition: all var(--transition-fast);
-                border-radius: var(--border-radius);
-                margin: 0.25rem 0.5rem;
-                padding: 0.6rem 1rem;
+            
+            /* Force dropdown to stay visible - override all Bootstrap defaults */
+            header.bg-primary,
+            .navbar,
+            .navbar-collapse,
+            .container {
+                overflow: visible !important;
             }
-
-            .dropdown-item:hover {
-                background: linear-gradient(135deg, rgba(91, 124, 153, 0.1) 0%, rgba(77, 182, 172, 0.1) 100%);
-                transform: translateX(5px);
+            
+            .nav-item.dropdown {
+                position: relative !important;
             }
-
-            /* Active Dropdown Item Styling */
-            .dropdown-item.active-item {
-                background: linear-gradient(135deg, rgba(91, 124, 153, 0.15) 0%, rgba(77, 182, 172, 0.15) 100%);
-                font-weight: 600;
-                border-left: 3px solid var(--accent-color);
+            
+            .dropdown-menu {
+                position: absolute !important;
+                top: 100% !important;
+                display: none !important;
             }
-
-            .dropdown-item.active-item:hover {
-                background: linear-gradient(135deg, rgba(91, 124, 153, 0.2) 0%, rgba(77, 182, 172, 0.2) 100%);
-            }
-
-            .dropdown-item.text-danger:hover {
-                background: rgba(220, 53, 69, 0.1);
-                color: #dc3545 !important;
-            }
-
-            .dropdown-item i {
-                width: 20px;
-                display: inline-block;
-            }
-
-            /* Cart Badge Positioning */
-            .nav-link .badge {
-                font-size: 0.65rem;
-                padding: 0.25em 0.5em;
-            }
-
-            /* Register Button Enhancement */
-            .register-btn {
-                font-weight: 600;
-                padding: 0.5rem 1.25rem;
-                border-radius: var(--border-radius);
-                transition: all var(--transition-fast);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            .register-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            }
-
-            /* Mobile Navigation Enhancement */
-            @media (max-width: 991px) {
-                .navbar-collapse {
-                    background: rgba(0, 0, 0, 0.05);
-                    border-radius: var(--border-radius);
-                    padding: 1rem;
-                    margin-top: 1rem;
-                    backdrop-filter: blur(10px);
-                }
-
-                .nav-item {
-                    margin-bottom: 0.25rem;
-                }
-
-                .dropdown-menu {
-                    background: rgba(255, 255, 255, 0.98);
-                    backdrop-filter: blur(10px);
-                }
-
-                .user-name,
-                .admin-name {
-                    display: inline !important;
-                }
-
-                .register-btn {
-                    width: 100%;
-                    margin-top: 0.5rem;
-                }
-            }
-
-            /* Dropdown Toggle Arrow Animation */
-            .dropdown-toggle::after {
-                transition: transform var(--transition-fast);
-                margin-left: 0.5rem;
-            }
-
-            .dropdown.show .dropdown-toggle::after {
-                transform: rotate(180deg);
-            }
-
-            /* Nav Link Active State Enhancement */
-            .nav-link.active {
-                position: relative;
-            }
-
-            .nav-link.active::after {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 6px;
-                height: 6px;
-                background: var(--accent-color);
-                border-radius: 50%;
-                animation: pulse 2s ease-in-out infinite;
-            }
-
-            @keyframes pulse {
-
-                0%,
-                100% {
-                    box-shadow: 0 0 0 0 rgba(77, 182, 172, 0.7);
-                }
-
-                50% {
-                    box-shadow: 0 0 0 6px rgba(77, 182, 172, 0);
-                }
-            }
-
-            /* Mobile Nav Link Active State */
-            @media (max-width: 991px) {
-                .nav-link.active::after {
-                    display: none;
-                }
-
-                .nav-link.active {
-                    background: rgba(255, 255, 255, 0.15);
-                    border-left: 3px solid var(--accent-color);
-                }
-            }
-
-            /* Header Scroll Effect */
-            header.scrolled {
-                box-shadow: var(--shadow-lg);
-            }
-
-            /* Active Dropdown Indicator */
-            .active-dropdown>.nav-link {
-                position: relative;
-            }
-
-            @media (min-width: 992px) {
-                .active-dropdown>.nav-link::after {
-                    content: '';
-                    position: absolute;
-                    bottom: -8px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 6px;
-                    height: 6px;
-                    background: var(--accent-color);
-                    border-radius: 50%;
-                    animation: pulse 2s ease-in-out infinite;
-                }
+            
+            .dropdown-menu.show {
+                display: block !important;
             }
         </style>
     </head>
@@ -431,7 +240,7 @@
                                                         </li>
                                                         <li>
                                                             <a class="dropdown-item py-2 <%= bookingsICls %>"
-                                                                href="${pageContext.request.contextPath}/bookings">
+                                                                href="${pageContext.request.contextPath}/BookingServlet?action=list">
                                                                 <i class="fas fa-calendar-check me-2 text-primary"></i>
                                                                 My Bookings
                                                             </a>
@@ -645,39 +454,63 @@
                     lastScroll = currentScroll;
                 });
 
-                // Dropdown hover effect (desktop only)
-                if (window.innerWidth >= 992) {
-                    const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+                // Dropdown click functionality for all screen sizes
+                const dropdowns = document.querySelectorAll('.nav-item.dropdown');
 
-                    dropdowns.forEach(dropdown => {
-                        let timeout;
-
-                        dropdown.addEventListener('mouseenter', function () {
-                            clearTimeout(timeout);
-                            const dropdownToggle = this.querySelector('.dropdown-toggle');
-                            const dropdownMenu = this.querySelector('.dropdown-menu');
-
-                            if (dropdownToggle && dropdownMenu) {
+                dropdowns.forEach(dropdown => {
+                    const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+                    const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+                    
+                    if (dropdownToggle && dropdownMenu) {
+                        // Handle click to toggle dropdown
+                        dropdownToggle.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Close all other dropdowns first
+                            dropdowns.forEach(otherDropdown => {
+                                if (otherDropdown !== dropdown) {
+                                    otherDropdown.classList.remove('show');
+                                    const otherToggle = otherDropdown.querySelector('.dropdown-toggle');
+                                    const otherMenu = otherDropdown.querySelector('.dropdown-menu');
+                                    if (otherToggle) otherToggle.classList.remove('show');
+                                    if (otherMenu) otherMenu.classList.remove('show');
+                                }
+                            });
+                            
+                            // Toggle current dropdown
+                            const isOpen = dropdown.classList.contains('show');
+                            
+                            if (isOpen) {
+                                dropdown.classList.remove('show');
+                                dropdownToggle.classList.remove('show');
+                                dropdownToggle.setAttribute('aria-expanded', 'false');
+                                dropdownMenu.classList.remove('show');
+                            } else {
+                                dropdown.classList.add('show');
                                 dropdownToggle.classList.add('show');
+                                dropdownToggle.setAttribute('aria-expanded', 'true');
                                 dropdownMenu.classList.add('show');
-                                this.classList.add('show');
                             }
                         });
+                    }
+                });
 
-                        dropdown.addEventListener('mouseleave', function () {
-                            const dropdownToggle = this.querySelector('.dropdown-toggle');
-                            const dropdownMenu = this.querySelector('.dropdown-menu');
-
-                            timeout = setTimeout(() => {
-                                if (dropdownToggle && dropdownMenu) {
-                                    dropdownToggle.classList.remove('show');
-                                    dropdownMenu.classList.remove('show');
-                                    this.classList.remove('show');
-                                }
-                            }, 200);
-                        });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    dropdowns.forEach(dropdown => {
+                        if (!dropdown.contains(e.target)) {
+                            dropdown.classList.remove('show');
+                            const toggle = dropdown.querySelector('.dropdown-toggle');
+                            const menu = dropdown.querySelector('.dropdown-menu');
+                            if (toggle) {
+                                toggle.classList.remove('show');
+                                toggle.setAttribute('aria-expanded', 'false');
+                            }
+                            if (menu) menu.classList.remove('show');
+                        }
                     });
-                }
+                });
 
                 // Cart count update animation (if needed)
                 function updateCartCount(count) {

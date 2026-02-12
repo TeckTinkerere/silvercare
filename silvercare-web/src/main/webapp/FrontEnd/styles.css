@@ -38,6 +38,14 @@
     --transition-slow: 0.5s ease;
 }
 
+/* Global Transition */
+body {
+    transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+:root, body, header, .btn, .card {
+    transition: all var(--transition-medium);
+}
+
 /* 2. Global Styles & Resets
    ========================================================================== */
 
@@ -84,7 +92,9 @@ header.bg-primary {
     top: 0;
     z-index: 1000;
     animation: slideDown 0.5s ease-out;
+    overflow: visible; /* Allow dropdown to show outside header */
 }
+
 
 @keyframes slideDown {
     from {
@@ -114,19 +124,11 @@ header.bg-primary {
 
 .navbar-brand i {
     font-size: 1.8rem;
-    animation: heartbeat 2s ease-in-out infinite;
+    transition: transform var(--transition-fast);
 }
 
-@keyframes heartbeat {
-    0%, 100% {
-        transform: scale(1);
-    }
-    10%, 30% {
-        transform: scale(1.1);
-    }
-    20%, 40% {
-        transform: scale(1);
-    }
+.navbar-brand:hover i {
+    transform: rotate(10deg);
 }
 
 .navbar-brand strong {
@@ -201,11 +203,25 @@ header.bg-primary {
 
 /* Dropdown Menu Styling */
 .dropdown-menu {
+    display: none;
     border: none;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);
     animation: slideDown 0.3s ease-out;
     margin-top: 0.5rem;
+    position: absolute;
+    z-index: 1050;
+    top: 100%; /* Position below the toggle */
+    right: 0; /* Align to right for user menu */
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+/* Ensure dropdown parent has relative positioning */
+.nav-item.dropdown {
+    position: relative;
 }
 
 .dropdown-item {
@@ -284,6 +300,7 @@ header.bg-primary {
 /* Navbar Collapse Animation */
 .navbar-collapse {
     animation: fadeIn 0.4s ease-out;
+    overflow: visible; /* Allow dropdowns to show */
 }
 
 @keyframes fadeIn {

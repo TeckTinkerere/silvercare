@@ -24,51 +24,8 @@
 
                 <!-- Global Styles -->
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/FrontEnd/styles.css">
-
                 <style>
-                    :root {
-                        --sidebar-width: 280px;
-                        --primary-color: #5b7c99;
-                        --secondary-color: #2c3e50;
-                        --accent-color: #f39c12;
-                    }
-
-                    body {
-                        background-color: #f8f9fa;
-                    }
-
-                    .sidebar {
-                        width: var(--sidebar-width);
-                        background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-                        color: white;
-                        position: fixed;
-                        top: 0;
-                        height: 100vh;
-                        z-index: 1040;
-                        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-                    }
-
-                    .nav-link {
-                        color: rgba(255, 255, 255, 0.8);
-                        padding: .875rem 1.5rem;
-                        margin: .25rem .75rem;
-                        border-radius: 8px;
-                        font-weight: 500;
-                        display: flex;
-                        align-items: center;
-                    }
-
-                    .nav-link.active,
-                    .nav-link:hover {
-                        background-color: var(--accent-color);
-                        color: white;
-                    }
-
-                    .content {
-                        margin-left: var(--sidebar-width);
-                        padding: 2rem;
-                    }
-
+                    /* Additional custom styles if needed */
                     .log-details {
                         max-width: 250px;
                         overflow: hidden;
@@ -84,26 +41,8 @@
 
             <body>
                 <!-- Sidebar -->
-                <div class="sidebar d-flex flex-column">
-                    <div class="p-4 border-bottom border-light border-opacity-10">
-                        <a href="${pageContext.request.contextPath}/admin/dashboard"
-                            class="text-white text-decoration-none h4 mb-0">
-                            <i class="bi bi-heart-fill"></i> SilverCare
-                        </a>
-                    </div>
-                    <ul class="nav nav-pills flex-column mt-3">
-                        <li><a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link"><i
-                                    class="bi bi-grid me-2"></i>Dashboard</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/services" class="nav-link"><i
-                                    class="bi bi-box-seam me-2"></i>Services</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/bookings" class="nav-link"><i
-                                    class="bi bi-calendar-check me-2"></i>Bookings</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/logs" class="nav-link active"><i
-                                    class="bi bi-journal-text me-2"></i>Activity Logs</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/users" class="nav-link"><i
-                                    class="bi bi-people me-2"></i>Users</a></li>
-                    </ul>
-                </div>
+                <c:set var="activePage" value="logs" />
+                <jsp:include page="adminSidebar.jsp" />
 
                 <div class="content">
                     <div class="page-header mb-4">
@@ -127,7 +66,9 @@
                                         <c:forEach var="log" items="${logs}">
                                             <tr>
                                                 <td class="ps-4">
-                                                    <fmt:formatDate value="${log.createdAt}"
+                                                    <fmt:parseDate value="${log.createdAt}"
+                                                        pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="parsedDate" />
+                                                    <fmt:formatDate value="${parsedDate}"
                                                         pattern="dd MMM yyyy, HH:mm:ss" />
                                                 </td>
                                                 <td>

@@ -19,7 +19,7 @@ services:
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
-      - key: STRIPE_PUBLIC_KEY
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false
     healthCheckPath: /s-api/status
 
@@ -38,6 +38,8 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      - key: STRIPE_PUBLIC_KEY
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false
+      - key: API_BASE_URL
+        sync: false # Set it to your silvercare-api Render URL (e.g. https://...onrender.com/s-api)
     healthCheckPath: /

@@ -1,14 +1,13 @@
 package com.silvercare.servlet;
 
-import com.silvercare.dao.BookingDAO;
-import com.silvercare.dao.FeedbackDAO;
-import com.silvercare.dao.ServiceDAO;
-import com.silvercare.dao.UserDAO;
-import com.silvercare.dao.AuditLogDAO;
-import com.silvercare.model.Service;
-import com.silvercare.model.Booking;
+import com.silvercare.util.ApiClient;
 import com.silvercare.model.User;
-import com.silvercare.model.Feedback;
+import com.silvercare.model.Service;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -18,9 +17,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.Part;
@@ -28,15 +29,18 @@ import com.silvercare.util.FileService;
 
 /**
  * Servlet for Admin Dashboard and admin page routing.
- * Refactored to use local JDBC DAOs to satisfy MVC requirements.
+ * Refactored to use ApiClient REST calls to the silvercare-api controllers.
  */
 @WebServlet({ "/admin/dashboard", "/admin/services", "/admin/categories", "/admin/bookings", "/admin/feedback",
-        "/admin/add-user", "/admin/edit-user", "/admin/save-user", "/admin/delete-user",
+        "/admin/users", "/admin/add-user", "/admin/edit-user", "/admin/save-user", "/admin/delete-user",
         "/admin/reset-password", "/admin/user-details-json", "/admin/booking-details", "/admin/export-bookings",
-        "/admin/export-users", "/admin/export-feedback", "/admin/logs" })
+        "/admin/export-users", "/admin/export-feedback", "/admin/logs",
+        "/admin/add-service", "/admin/edit-service", "/admin/delete-service", "/admin/save-service",
+        "/admin/save-category", "/admin/delete-category" })
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 5 * 1024 * 1024, maxRequestSize = 25 * 1024 * 1024)
 public class AdminDashboardServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -143,7 +147,8 @@ public class AdminDashboardServlet extends HttpServlet {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("error", "System Error: " + e.getMessage());
+            System.err.println("ADMIN DASHBOARD ERROR: " + e.getMessage());
+            request.setAttribute("error", "System Error: " + e.getMessage() + ". Please check server logs.");
             jspPath = "/FrontEnd/admin/dashboard.jsp";
         }
 
@@ -165,28 +170,65 @@ public class AdminDashboardServlet extends HttpServlet {
             handleSaveUser(request, response);
         } else if ("/admin/reset-password".equals(path)) {
             handleResetPassword(request, response);
+        } else if ("/admin/delete-user".equals(path)) {
+            handleDeleteUser(request, response);
+        } else if ("/admin/delete-service".equals(path)) {
+            handleDeleteService(request, response);
+        } else if ("/admin/delete-category".equals(path)) {
+            handleDeleteCategory(request, response);
         } else {
             doGet(request, response);
         }
     }
 
-    /**
-     * Handle saving (creating or updating) a service
-     */
+    // ========== Helper: Log admin action via REST API ==========
+    private void logAdminAction(Integer adminId, String action, String details) {
+        try {
+            Map<String, Object> logData = new HashMap<>();
+            logData.put("adminId", adminId);
+            logData.put("action", action);
+            logData.put("details", details);
+            ApiClient.post("/admin/logs", logData, String.class);
+        } catch (Exception e) {
+            e.printStackTrace(); // Non-critical, don't block main flow
+        }
+    }
+
+    // ========== Category Operations ==========
+
     private void handleSaveCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idStr = request.getParameter("category_id");
         String name = request.getParameter("category_name");
         String description = request.getParameter("description");
         String icon = request.getParameter("icon");
 
         try {
-            ServiceDAO dao = new ServiceDAO();
-            dao.addCategory(name, description, icon);
-
-            // Log interaction
             Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
-            new AuditLogDAO().logAction(adminId, "Create Category", "Name: " + name);
+            Map<String, String> categoryData = new HashMap<>();
+            categoryData.put("name", name);
+            categoryData.put("description", description);
+            categoryData.put("icon", icon);
 
-            response.sendRedirect(request.getContextPath() + "/admin/categories?status=success");
+            ApiClient.ApiResponse<String> apiResponse;
+
+            if (idStr != null && !idStr.isEmpty()) {
+                // Update existing category — handle decimal IDs (e.g. "3.0")
+                int catId = (int) Double.parseDouble(idStr);
+                apiResponse = ApiClient.put(
+                        "/admin/services/categories/" + catId, categoryData, String.class, adminId);
+            } else {
+                // Create new category
+                apiResponse = ApiClient.post(
+                        "/admin/services/categories", categoryData, String.class, adminId);
+            }
+
+            if (apiResponse.isSuccess()) {
+                String action = (idStr != null && !idStr.isEmpty()) ? "Update Category" : "Create Category";
+                logAdminAction(adminId, action, "Name: " + name);
+                response.sendRedirect(request.getContextPath() + "/admin/categories?status=success");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/categories?status=error");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             response.sendRedirect(request.getContextPath() + "/admin/categories?status=error");
@@ -197,14 +239,18 @@ public class AdminDashboardServlet extends HttpServlet {
         String id = request.getParameter("id");
         if (id != null) {
             try {
-                ServiceDAO dao = new ServiceDAO();
-                dao.deleteCategory(Integer.parseInt(id));
-
-                // Log interaction
+                // Handle decimal IDs (e.g. "3.0")
+                int catId = (int) Double.parseDouble(id);
                 Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
-                new AuditLogDAO().logAction(adminId, "Delete Category", "ID: " + id);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.delete(
+                        "/admin/services/categories/" + catId, String.class, adminId);
 
-                response.sendRedirect(request.getContextPath() + "/admin/categories?status=deleted");
+                if (apiResponse.isSuccess()) {
+                    logAdminAction(adminId, "Delete Category", "ID: " + id);
+                    response.sendRedirect(request.getContextPath() + "/admin/categories?status=deleted");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/admin/categories?status=error");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 response.sendRedirect(request.getContextPath() + "/admin/categories?status=error");
@@ -212,46 +258,98 @@ public class AdminDashboardServlet extends HttpServlet {
         }
     }
 
+    // ========== Service Operations ==========
+
     private void handleSaveService(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
+            Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
             String idStr = request.getParameter("id");
+            // Handle decimal IDs (e.g. "5.0")
+            if (idStr != null && !idStr.isEmpty()) {
+                try {
+                    idStr = String.valueOf((int) Double.parseDouble(idStr));
+                    System.out.println("AdminDashboard: Parsed ID " + request.getParameter("id") + " to " + idStr);
+                } catch (NumberFormatException ignored) {
+                }
+            }
             String name = request.getParameter("service_name");
             String description = request.getParameter("description");
             String priceStr = request.getParameter("price");
-            int categoryId = Integer.parseInt(request.getParameter("category_id"));
-            boolean active = request.getParameter("active") != null;
+            int categoryId = (int) Double.parseDouble(request.getParameter("category_id"));
 
-            Part filePart = request.getPart("image_file");
-            String imagePath = FileService.uploadImage(filePart, getServletContext().getRealPath("/"));
+            System.out.println("=== SAVE SERVICE DEBUG ===");
+            System.out.println("ID: " + idStr);
+            System.out.println("Name: " + name);
+            System.out.println("Description: " + description);
+            System.out.println("Price: " + priceStr);
+            System.out.println("Category ID: " + categoryId);
+            System.out.println("Is Update: " + (idStr != null && !idStr.isEmpty()));
 
-            ServiceDAO dao = new ServiceDAO();
-            Service service = new Service();
-            service.setName(name);
-            service.setDescription(description);
-            service.setPrice(new BigDecimal(priceStr));
-            service.setCategoryId(categoryId);
-            service.setActive(active);
-
-            if (idStr != null && !idStr.isEmpty()) {
-                int id = Integer.parseInt(idStr);
-                service.setId(id);
-                // Preserve old image if new one not uploaded
-                if (imagePath == null) {
-                    Service old = dao.getServiceById(id);
-                    service.setImagePath(old.getImagePath());
-                } else {
-                    service.setImagePath(imagePath);
-                }
-                dao.updateService(service);
-            } else {
-                service.setImagePath(imagePath != null ? imagePath : "images/default-service.jpg");
-                dao.addService(service);
+            // Try file upload first, fall back to text-based image_url
+            String imagePath = null;
+            try {
+                Part filePart = request.getPart("image_file");
+                imagePath = FileService.uploadImage(filePart, getServletContext().getRealPath("/"));
+            } catch (Exception e) {
+                // Not a multipart request — ignore
             }
 
-            // Log interaction
-            Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
+            // Fall back to text-based image URL if no file was uploaded
+            if (imagePath == null) {
+                String imageUrl = request.getParameter("image_url");
+                if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+                    imagePath = imageUrl.trim();
+                }
+            }
+
+            Map<String, Object> serviceData = new HashMap<>();
+            serviceData.put("name", name);
+            serviceData.put("description", description);
+            // Parse price explicitly to avoid string issues
+            try {
+                serviceData.put("price", new java.math.BigDecimal(priceStr));
+            } catch (Exception e) {
+                // Fallback or default
+                serviceData.put("price", 0.0);
+            }
+            serviceData.put("categoryId", categoryId);
+
+            if (idStr != null && !idStr.isEmpty()) {
+                int serviceId = Integer.parseInt(idStr);
+                serviceData.put("id", serviceId);
+
+                // If no new image, preserve old one by fetching it
+                if (imagePath == null) {
+                    ApiClient.ApiResponse<String> oldSvcResp = ApiClient.get(
+                            "/services/" + serviceId, String.class);
+                    if (oldSvcResp.isSuccess() && oldSvcResp.getData() != null) {
+                        JsonObject json = gson.fromJson(oldSvcResp.getData(), JsonObject.class);
+                        JsonObject data = json.getAsJsonObject("data");
+                        if (data != null && data.has("imagePath")) {
+                            serviceData.put("imagePath", data.get("imagePath").getAsString());
+                        }
+                    }
+                } else {
+                    serviceData.put("imagePath", imagePath);
+                }
+
+                // Update service via REST API
+                System.out.println("Calling PUT /admin/services/" + serviceId);
+                ApiClient.ApiResponse<String> updateResp = ApiClient.put("/admin/services/" + serviceId, serviceData,
+                        String.class, adminId);
+                System.out.println("Update response: " + updateResp.isSuccess() + " - " + updateResp.getData());
+            } else {
+                serviceData.put("imagePath", imagePath != null ? imagePath : "images/default-service.jpg");
+                // Create service via REST API
+                System.out.println("Calling POST /admin/services with data: " + serviceData);
+                ApiClient.ApiResponse<String> createResp = ApiClient.post("/admin/services", serviceData, String.class,
+                        adminId);
+                System.out.println("Create response: " + createResp.isSuccess() + " - " + createResp.getData());
+                System.out.println("Create response status: " + createResp.getStatusCode());
+            }
+
             String action = (idStr != null && !idStr.isEmpty()) ? "Update Service" : "Create Service";
-            new AuditLogDAO().logAction(adminId, action, "Service: " + name);
+            logAdminAction(adminId, action, "Service: " + name);
 
             response.sendRedirect(request.getContextPath() + "/admin/services?status=success");
         } catch (Exception e) {
@@ -264,14 +362,18 @@ public class AdminDashboardServlet extends HttpServlet {
         String id = request.getParameter("id");
         if (id != null) {
             try {
-                ServiceDAO dao = new ServiceDAO();
-                dao.deleteService(Integer.parseInt(id));
-
-                // Log interaction
+                // Handle decimal IDs (e.g. "5.0")
+                int serviceId = (int) Double.parseDouble(id);
                 Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
-                new AuditLogDAO().logAction(adminId, "Delete Service", "ID: " + id);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.delete(
+                        "/admin/services/" + serviceId, String.class, adminId);
 
-                response.sendRedirect(request.getContextPath() + "/admin/services?status=deleted");
+                if (apiResponse.isSuccess()) {
+                    logAdminAction(adminId, "Delete Service", "ID: " + id);
+                    response.sendRedirect(request.getContextPath() + "/admin/services?status=deleted");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/admin/services?status=error");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 response.sendRedirect(request.getContextPath() + "/admin/services?status=error");
@@ -279,63 +381,176 @@ public class AdminDashboardServlet extends HttpServlet {
         }
     }
 
+    // ========== Data Loading Methods ==========
+
     private void loadServicesData(HttpServletRequest request) throws Exception {
-        ServiceDAO dao = new ServiceDAO();
-        request.setAttribute("services", dao.getAllServices());
+        // Use admin endpoint to get ALL services (including inactive ones)
+        System.out.println("=== loadServicesData ===");
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/admin/services", String.class);
+        System.out.println("API Response success: " + apiResponse.isSuccess());
+
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+            Type listType = new TypeToken<List<Service>>() {
+            }.getType();
+            List<Service> services = gson.fromJson(json.getAsJsonArray("data"), listType);
+            System.out.println("Services loaded: " + (services != null ? services.size() : 0));
+            request.setAttribute("services", services);
+        } else {
+            System.out.println("API call failed or returned null");
+            request.setAttribute("services", new ArrayList<Service>());
+        }
     }
 
     private void loadDashboardStats(HttpServletRequest request) throws Exception {
-        BookingDAO bookingDAO = new BookingDAO();
-        Map<String, Object> stats = bookingDAO.getDashboardStats();
+        // Fetch dashboard stats via REST API
+        ApiClient.ApiResponse<String> statsResponse = ApiClient.get("/admin/dashboard/stats", String.class);
+        if (statsResponse.isSuccess() && statsResponse.getData() != null) {
+            JsonObject stats = gson.fromJson(statsResponse.getData(), JsonObject.class);
+            if (stats.has("data")) {
+                JsonObject data = stats.getAsJsonObject("data");
+                request.setAttribute("revenue",
+                        data.has("totalRevenue") ? data.get("totalRevenue").getAsString() : "0");
+                request.setAttribute("bookingCount",
+                        data.has("bookingCount") ? data.get("bookingCount").getAsInt() : 0);
+                request.setAttribute("serviceCount",
+                        data.has("serviceCount") ? data.get("serviceCount").getAsInt() : 0);
+                request.setAttribute("clientCount", data.has("userCount") ? data.get("userCount").getAsInt() : 0);
+            } else {
+                // Flat response format
+                request.setAttribute("revenue",
+                        stats.has("totalRevenue") ? stats.get("totalRevenue").getAsString() : "0");
+                request.setAttribute("bookingCount",
+                        stats.has("bookingCount") ? stats.get("bookingCount").getAsInt() : 0);
+                request.setAttribute("serviceCount",
+                        stats.has("serviceCount") ? stats.get("serviceCount").getAsInt() : 0);
+                request.setAttribute("clientCount", stats.has("userCount") ? stats.get("userCount").getAsInt() : 0);
+            }
+        }
 
-        request.setAttribute("revenue", stats.get("revenue"));
-        request.setAttribute("bookingCount", stats.get("bookings"));
-        request.setAttribute("serviceCount", stats.get("services"));
-        request.setAttribute("clientCount", stats.get("clients"));
+        // Monthly revenue via REST API
+        ApiClient.ApiResponse<String> revenueResponse = ApiClient.get("/admin/reports/monthly-revenue", String.class);
+        if (revenueResponse.isSuccess() && revenueResponse.getData() != null) {
+            JsonObject json = gson.fromJson(revenueResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                request.setAttribute("monthlyRevenue", gson.fromJson(json.getAsJsonArray("data"), listType));
+            }
+        }
 
-        // Add monthly revenue for charts
-        request.setAttribute("monthlyRevenue", bookingDAO.getMonthlyRevenue());
-        request.setAttribute("topServices", bookingDAO.getTopServices());
+        // Top services via REST API
+        ApiClient.ApiResponse<String> topSvcResponse = ApiClient.get("/admin/reports/popular-services", String.class);
+        if (topSvcResponse.isSuccess() && topSvcResponse.getData() != null) {
+            JsonObject json = gson.fromJson(topSvcResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                request.setAttribute("topServices", gson.fromJson(json.getAsJsonArray("data"), listType));
+            }
+        }
 
-        // Top clients report (by total spend)
-        request.setAttribute("topClients", bookingDAO.getTopClients());
+        // Top clients via REST API
+        ApiClient.ApiResponse<String> topClientsResponse = ApiClient.get("/admin/reports/top-clients", String.class);
+        if (topClientsResponse.isSuccess() && topClientsResponse.getData() != null) {
+            JsonObject json = gson.fromJson(topClientsResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                request.setAttribute("topClients", gson.fromJson(json.getAsJsonArray("data"), listType));
+            }
+        }
 
-        // Service ratings report (best and lowest rated)
-        FeedbackDAO feedbackDAO = new FeedbackDAO();
-        request.setAttribute("serviceRatings", feedbackDAO.getServiceRatings());
+        // Service ratings via REST API
+        ApiClient.ApiResponse<String> ratingsResponse = ApiClient.get("/admin/reports/service-ratings",
+                String.class);
+        if (ratingsResponse.isSuccess() && ratingsResponse.getData() != null) {
+            JsonObject json = gson.fromJson(ratingsResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                request.setAttribute("serviceRatings", gson.fromJson(json.getAsJsonArray("data"), listType));
+            }
+        }
     }
 
     private void loadCategoriesData(HttpServletRequest request) throws Exception {
-        ServiceDAO dao = new ServiceDAO();
-        request.setAttribute("categories", dao.getAllCategories());
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/services/categories", String.class);
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+            Type listType = new TypeToken<List<Map<String, Object>>>() {
+            }.getType();
+            List<Map<String, Object>> categories = gson.fromJson(json.getAsJsonArray("data"), listType);
+            fixGsonDoubleIds(categories);
+            request.setAttribute("categories", categories);
+        } else {
+            request.setAttribute("categories", new ArrayList<>());
+        }
+    }
+
+    /**
+     * Fix Gson's default behavior of deserializing JSON integers as Double
+     * when using Map<String, Object>. Converts whole-number Doubles (5.0 -> 5)
+     * back to Integer so JSP renders "5" not "5.0".
+     */
+    private void fixGsonDoubleIds(List<Map<String, Object>> list) {
+        for (Map<String, Object> map : list) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                // Skip price fields - keep them as decimals
+                if ("price".equals(entry.getKey()))
+                    continue;
+
+                if (entry.getValue() instanceof Double) {
+                    Double d = (Double) entry.getValue();
+                    if (d == Math.floor(d) && !Double.isInfinite(d)) {
+                        entry.setValue(d.intValue());
+                    }
+                }
+            }
+        }
     }
 
     private void loadBookingsData(HttpServletRequest request) throws Exception {
-        BookingDAO bookingDAO = new BookingDAO();
-        request.setAttribute("bookings", bookingDAO.getAllBookings());
+        // No customerId => returns all bookings (admin use case)
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/bookings", String.class);
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+            Type listType = new TypeToken<List<Map<String, Object>>>() {
+            }.getType();
+            List<Map<String, Object>> bookings = gson.fromJson(json.getAsJsonArray("data"), listType);
+            request.setAttribute("bookings", bookings);
+        } else {
+            request.setAttribute("bookings", new ArrayList<>());
+        }
     }
 
     private void handleExportBookings(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            BookingDAO bookingDAO = new BookingDAO();
-            List<Booking> bookings = bookingDAO.getAllBookings();
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/bookings", String.class);
 
             response.setContentType("text/csv");
             response.setHeader("Content-Disposition", "attachment; filename=silvercare_bookings_export.csv");
-
             java.io.PrintWriter writer = response.getWriter();
-            // CSV Header
             writer.println("Booking ID,Customer Name,Booking Date,Status,Total Amount,GST Amount");
 
-            for (com.silvercare.model.Booking b : bookings) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(b.getId()).append(",");
-                sb.append("\"").append(b.getCustomerName()).append("\",");
-                sb.append(b.getBookingDate()).append(",");
-                sb.append(b.getStatus()).append(",");
-                sb.append(b.getTotalAmount()).append(",");
-                sb.append(b.getGstAmount());
-                writer.println(sb.toString());
+            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                JsonArray dataArray = json.getAsJsonArray("data");
+
+                if (dataArray != null) {
+                    for (JsonElement elem : dataArray) {
+                        JsonObject b = elem.getAsJsonObject();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(b.has("id") ? b.get("id").getAsInt() : "").append(",");
+                        sb.append("\"").append(b.has("customerName") ? b.get("customerName").getAsString() : "")
+                                .append("\",");
+                        sb.append(b.has("bookingDate") ? b.get("bookingDate").getAsString() : "").append(",");
+                        sb.append(b.has("status") ? b.get("status").getAsString() : "").append(",");
+                        sb.append(b.has("totalAmount") ? b.get("totalAmount").getAsString() : "").append(",");
+                        sb.append(b.has("gstAmount") ? b.get("gstAmount").getAsString() : "");
+                        writer.println(sb.toString());
+                    }
+                }
             }
             writer.flush();
             writer.close();
@@ -347,26 +562,42 @@ public class AdminDashboardServlet extends HttpServlet {
 
     private void handleExportUsers(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserDAO userDAO = new UserDAO();
-            List<User> users = userDAO.getAllCustomers();
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/users", String.class);
 
             response.setContentType("text/csv");
             response.setHeader("Content-Disposition", "attachment; filename=silvercare_users_export.csv");
-
             java.io.PrintWriter writer = response.getWriter();
             writer.println("User ID,Full Name,Email,Phone,Address,Gender,Role,Tutorial Completed");
 
-            for (com.silvercare.model.User u : users) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(u.getId()).append(",");
-                sb.append("\"").append(u.getFullName()).append("\",");
-                sb.append("\"").append(u.getEmail()).append("\",");
-                sb.append("\"").append(u.getPhone() != null ? u.getPhone() : "").append("\",");
-                sb.append("\"").append(u.getAddress() != null ? u.getAddress() : "").append("\",");
-                sb.append(u.getGender()).append(",");
-                sb.append(u.getRole()).append(",");
-                sb.append(u.isTutorialCompleted());
-                writer.println(sb.toString());
+            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                // The /users endpoint returns a list directly (not wrapped in {data:...})
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> users;
+                try {
+                    // Try parsing as wrapped response first
+                    JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                    if (json.has("data")) {
+                        users = gson.fromJson(json.getAsJsonArray("data"), listType);
+                    } else {
+                        users = gson.fromJson(apiResponse.getData(), listType);
+                    }
+                } catch (Exception e) {
+                    users = gson.fromJson(apiResponse.getData(), listType);
+                }
+
+                for (Map<String, Object> u : users) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(u.getOrDefault("id", "")).append(",");
+                    sb.append("\"").append(u.getOrDefault("fullName", "")).append("\",");
+                    sb.append("\"").append(u.getOrDefault("email", "")).append("\",");
+                    sb.append("\"").append(u.getOrDefault("phone", "")).append("\",");
+                    sb.append("\"").append(u.getOrDefault("address", "")).append("\",");
+                    sb.append(u.getOrDefault("gender", "")).append(",");
+                    sb.append(u.getOrDefault("role", "")).append(",");
+                    sb.append(u.getOrDefault("tutorialCompleted", ""));
+                    writer.println(sb.toString());
+                }
             }
             writer.flush();
             writer.close();
@@ -378,25 +609,31 @@ public class AdminDashboardServlet extends HttpServlet {
 
     private void handleExportFeedback(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            FeedbackDAO feedbackDAO = new FeedbackDAO();
-            List<Feedback> feedbackList = feedbackDAO.getAllFeedback();
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/feedback", String.class);
 
             response.setContentType("text/csv");
             response.setHeader("Content-Disposition", "attachment; filename=silvercare_feedback_export.csv");
-
             java.io.PrintWriter writer = response.getWriter();
             writer.println("Feedback ID,Customer ID,Service ID,Rating,Comments,Created At");
 
-            for (com.silvercare.model.Feedback f : feedbackList) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(f.getFeedbackId()).append(",");
-                sb.append(f.getCustomerId()).append(",");
-                sb.append(f.getServiceId()).append(",");
-                sb.append(f.getRating()).append(",");
-                sb.append("\"").append(f.getComment() != null ? f.getComment().replace("\"", "\"\"") : "")
-                        .append("\",");
-                sb.append(f.getCreatedAt());
-                writer.println(sb.toString());
+            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                JsonArray dataArray = json.has("data") ? json.getAsJsonArray("data") : new JsonArray();
+
+                if (dataArray != null) {
+                    for (JsonElement elem : dataArray) {
+                        JsonObject f = elem.getAsJsonObject();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(f.has("feedbackId") ? f.get("feedbackId").getAsInt() : "").append(",");
+                        sb.append(f.has("customerId") ? f.get("customerId").getAsInt() : "").append(",");
+                        sb.append(f.has("serviceId") ? f.get("serviceId").getAsInt() : "").append(",");
+                        sb.append(f.has("rating") ? f.get("rating").getAsInt() : "").append(",");
+                        String comment = f.has("comment") ? f.get("comment").getAsString() : "";
+                        sb.append("\"").append(comment.replace("\"", "\"\"")).append("\",");
+                        sb.append(f.has("createdAt") ? f.get("createdAt").getAsString() : "");
+                        writer.println(sb.toString());
+                    }
+                }
             }
             writer.flush();
             writer.close();
@@ -407,69 +644,142 @@ public class AdminDashboardServlet extends HttpServlet {
     }
 
     private void loadFeedbackData(HttpServletRequest request) throws Exception {
-        FeedbackDAO feedbackDAO = new FeedbackDAO();
-        request.setAttribute("serviceRatings", feedbackDAO.getServiceRatings());
+        // Fetch customer feedback
+        ApiClient.ApiResponse<String> feedbackResponse = ApiClient.get("/feedback", String.class);
+        if (feedbackResponse.isSuccess() && feedbackResponse.getData() != null) {
+            JsonObject json = gson.fromJson(feedbackResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> feedback = gson.fromJson(json.getAsJsonArray("data"), listType);
+                request.setAttribute("feedback", feedback);
+            } else {
+                request.setAttribute("feedback", new ArrayList<>());
+            }
+        } else {
+            request.setAttribute("feedback", new ArrayList<>());
+        }
+
+        // Fetch public contact messages
+        ApiClient.ApiResponse<String> contactResponse = ApiClient.get("/contact", String.class);
+        if (contactResponse.isSuccess() && contactResponse.getData() != null) {
+            JsonObject json = gson.fromJson(contactResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> contactMessages = gson.fromJson(json.getAsJsonArray("data"), listType);
+                request.setAttribute("contactMessages", contactMessages);
+            } else {
+                request.setAttribute("contactMessages", new ArrayList<>());
+            }
+        } else {
+            request.setAttribute("contactMessages", new ArrayList<>());
+        }
     }
 
     private void loadServiceForEdit(HttpServletRequest request) throws Exception {
-        String id = request.getParameter("id");
-        if (id != null) {
-            ServiceDAO dao = new ServiceDAO();
-            request.setAttribute("service", dao.getServiceById(Integer.parseInt(id)));
+        String idStr = request.getParameter("id");
+        if (idStr != null && !idStr.isEmpty()) {
+            try {
+                // Handle decimal IDs (e.g. "5.0") by parsing to double then converting to int
+                int id = (int) Double.parseDouble(idStr);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/admin/services/" + id, String.class);
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                    JsonObject data = json.getAsJsonObject("data");
+                    Service service = gson.fromJson(data, Service.class);
+                    request.setAttribute("service", service);
+                }
+            } catch (NumberFormatException e) {
+                request.setAttribute("error", "Invalid service ID format");
+            }
         }
     }
 
     private void loadUsersData(HttpServletRequest request) throws Exception {
-        UserDAO userDAO = new UserDAO();
         String areaFilter = request.getParameter("area");
+        String endpoint;
+
         if (areaFilter != null && !areaFilter.trim().isEmpty()) {
-            request.setAttribute("users", userDAO.getUsersByArea(areaFilter.trim()));
+            endpoint = "/users/search?area=" + java.net.URLEncoder.encode(areaFilter.trim(), "UTF-8");
             request.setAttribute("areaFilter", areaFilter.trim());
         } else {
-            request.setAttribute("users", userDAO.getAllUsers());
+            endpoint = "/users/all";
+        }
+
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.get(endpoint, String.class);
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> users = gson.fromJson(json.getAsJsonArray("data"), listType);
+                request.setAttribute("users", users);
+            } else {
+                // Try parsing as direct list
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> users = gson.fromJson(apiResponse.getData(), listType);
+                request.setAttribute("users", users);
+            }
+        } else {
+            request.setAttribute("users", new ArrayList<>());
         }
     }
 
     private void loadUserForEdit(HttpServletRequest request) throws Exception {
         String id = request.getParameter("id");
         if (id != null) {
-            UserDAO userDAO = new UserDAO();
-            request.setAttribute("editUser", userDAO.getUserById(Integer.parseInt(id)));
+            // Handle decimal IDs (e.g. "3.0") by parsing as double then converting to int
+            try {
+                int userId = (int) Double.parseDouble(id);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/users/" + userId, String.class);
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    User user = gson.fromJson(apiResponse.getData(), User.class);
+                    request.setAttribute("userData", user);
+                }
+            } catch (NumberFormatException e) {
+                request.setAttribute("error", "Invalid user ID format");
+            }
         }
     }
 
     private void handleSaveUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserDAO userDAO = new UserDAO();
             String idStr = request.getParameter("id");
             String fullName = request.getParameter("fullName");
             String email = request.getParameter("email");
             String phone = request.getParameter("phone");
             String address = request.getParameter("address");
 
+            Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
+
             if (idStr != null && !idStr.isEmpty()) {
-                com.silvercare.model.User user = new com.silvercare.model.User();
-                user.setId(Integer.parseInt(idStr));
-                user.setFullName(fullName);
-                user.setEmail(email);
-                user.setPhone(phone);
-                user.setAddress(address);
-                userDAO.updateProfile(user);
+                // Update user via REST API
+                Map<String, Object> updateData = new HashMap<>();
+                updateData.put("id", Integer.parseInt(idStr));
+                updateData.put("fullName", fullName);
+                updateData.put("email", email);
+                updateData.put("phone", phone);
+                updateData.put("address", address);
+
+                ApiClient.put("/users/profile", updateData, String.class, adminId);
             } else {
-                com.silvercare.model.User user = new com.silvercare.model.User();
-                user.setFullName(fullName);
-                user.setEmail(email);
-                user.setPhone(phone);
-                user.setAddress(address);
+                // Register new user via REST API
+                Map<String, String> regData = new HashMap<>();
+                regData.put("fullName", fullName);
+                regData.put("email", email);
+                regData.put("phone", phone);
+                regData.put("address", address);
                 String password = request.getParameter("password");
-                userDAO.register(user, password);
+                regData.put("password", password);
+
+                ApiClient.post("/users/register", regData, String.class, adminId);
             }
 
             // Log interaction
-            Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
             String logAction = (idStr != null && !idStr.isEmpty()) ? "Update User" : "Create User";
-            new AuditLogDAO().logAction(adminId, logAction,
-                    "User Email: " + email);
+            logAdminAction(adminId, logAction, "User Email: " + email);
 
             response.sendRedirect(request.getContextPath() + "/admin/users?status=success");
         } catch (Exception e) {
@@ -482,14 +792,15 @@ public class AdminDashboardServlet extends HttpServlet {
         String id = request.getParameter("id");
         if (id != null) {
             try {
-                UserDAO userDAO = new UserDAO();
-                userDAO.deleteUser(Integer.parseInt(id));
-
-                // Log interaction
                 Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
-                new AuditLogDAO().logAction(adminId, "Delete User", "ID: " + id);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.delete("/users/" + id, String.class, adminId);
 
-                response.sendRedirect(request.getContextPath() + "/admin/users?status=deleted");
+                if (apiResponse.isSuccess()) {
+                    logAdminAction(adminId, "Delete User", "ID: " + id);
+                    response.sendRedirect(request.getContextPath() + "/admin/users?status=deleted");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/admin/users?status=error");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 response.sendRedirect(request.getContextPath() + "/admin/users?status=error");
@@ -498,31 +809,72 @@ public class AdminDashboardServlet extends HttpServlet {
     }
 
     private void handleResetPassword(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.sendRedirect(request.getContextPath() + "/admin/users?status=reset_success");
+        try {
+            String userIdStr = request.getParameter("userId");
+            String newPassword = request.getParameter("newPassword");
+            String role = request.getParameter("role");
+
+            Map<String, Object> resetData = new HashMap<>();
+            if (userIdStr != null)
+                resetData.put("userId", Integer.parseInt(userIdStr));
+            resetData.put("newPassword", newPassword);
+            resetData.put("role", role != null ? role : "Customer");
+
+            Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.post(
+                    "/users/reset-password", resetData, String.class, adminId);
+
+            if (apiResponse.isSuccess()) {
+                logAdminAction(adminId, "Reset Password", "User ID: " + userIdStr);
+                response.sendRedirect(request.getContextPath() + "/admin/users?status=reset_success");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/users?status=error");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/admin/users?status=error");
+        }
     }
 
     private void handleGetUserDetailsJson(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String id = request.getParameter("id");
         if (id != null) {
             try {
-                UserDAO userDAO = new UserDAO();
-                com.silvercare.model.User user = userDAO.getUserById(Integer.parseInt(id));
+                // Fetch user data
+                ApiClient.ApiResponse<String> userResponse = ApiClient.get("/users/" + id, String.class);
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
-                // Simple JSON serialization
-                StringBuilder json = new StringBuilder("{");
-                if (user != null) {
-                    json.append("\"id\":").append(user.getId()).append(",");
-                    json.append("\"fullName\":\"").append(user.getFullName()).append("\",");
-                    json.append("\"email\":\"").append(user.getEmail()).append("\",");
-                    json.append("\"phone\":\"").append(user.getPhone() != null ? user.getPhone() : "")
-                            .append("\",");
-                    json.append("\"address\":\"").append(user.getAddress() != null ? user.getAddress() : "")
-                            .append("\",");
-                    json.append("\"role\":\"").append(user.getRole()).append("\"");
+
+                if (userResponse.isSuccess() && userResponse.getData() != null) {
+                    // Parse user data
+                    JsonObject userData = gson.fromJson(userResponse.getData(), JsonObject.class);
+
+                    // Fetch bookings for this user
+                    JsonArray bookingsArray = new JsonArray();
+                    try {
+                        ApiClient.ApiResponse<String> bookingsResponse = ApiClient.get(
+                                "/bookings?customerId=" + id, String.class);
+                        if (bookingsResponse.isSuccess() && bookingsResponse.getData() != null) {
+                            JsonObject bookingsJson = gson.fromJson(bookingsResponse.getData(), JsonObject.class);
+                            if (bookingsJson.has("data")) {
+                                bookingsArray = bookingsJson.getAsJsonArray("data");
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Bookings fetch failed — non-critical, continue with empty bookings
+                        e.printStackTrace();
+                    }
+
+                    // Build response in the format the modal JS expects: { user: {...}, bookings:
+                    // [...] }
+                    JsonObject result = new JsonObject();
+                    result.add("user", userData);
+                    result.add("bookings", bookingsArray);
+                    response.getWriter().write(gson.toJson(result));
+                } else {
+                    response.setStatus(404);
+                    response.getWriter().write("{\"error\":\"User not found\"}");
                 }
-                json.append("}");
-                response.getWriter().write(json.toString());
             } catch (Exception e) {
                 response.setStatus(500);
                 response.getWriter().write("{\"error\":\"" + e.getMessage() + "\"}");
@@ -533,13 +885,67 @@ public class AdminDashboardServlet extends HttpServlet {
     private void loadBookingDetails(HttpServletRequest request) throws Exception {
         String id = request.getParameter("id");
         if (id != null) {
-            BookingDAO dao = new BookingDAO();
-            request.setAttribute("booking", dao.getBookingById(Integer.parseInt(id)));
+            // Handle decimal IDs (e.g., "22.0") by parsing as double then converting to int
+            try {
+                int bookingId = (int) Double.parseDouble(id);
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/bookings/" + bookingId, String.class);
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                    Type mapType = new TypeToken<Map<String, Object>>() {
+                    }.getType();
+                    Map<String, Object> booking = gson.fromJson(json.getAsJsonObject("data"), mapType);
+
+                    // Fix Gson Double-to-Integer for booking ID and other fields
+                    for (Map.Entry<String, Object> entry : booking.entrySet()) {
+                        if (entry.getValue() instanceof Double && !"totalAmount".equals(entry.getKey())
+                                && !"gstAmount".equals(entry.getKey())) {
+                            Double d = (Double) entry.getValue();
+                            if (d == Math.floor(d) && !Double.isInfinite(d)) {
+                                entry.setValue(d.intValue());
+                            }
+                        }
+                    }
+
+                    // Fix nested details list
+                    if (booking.containsKey("details")) {
+                        Object detailsObj = booking.get("details");
+                        if (detailsObj instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> details = (List<Map<String, Object>>) detailsObj;
+                            for (Map<String, Object> detail : details) {
+                                for (Map.Entry<String, Object> entry : detail.entrySet()) {
+                                    if (entry.getValue() instanceof Double && !"unitPrice".equals(entry.getKey())) {
+                                        Double d = (Double) entry.getValue();
+                                        if (d == Math.floor(d) && !Double.isInfinite(d)) {
+                                            entry.setValue(d.intValue());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    request.setAttribute("booking", booking);
+                }
+            } catch (NumberFormatException e) {
+                // If parsing fails, set error attribute
+                request.setAttribute("error", "Invalid booking ID format");
+            }
         }
     }
 
     private void loadLogsData(HttpServletRequest request) throws Exception {
-        com.silvercare.dao.AuditLogDAO logDAO = new com.silvercare.dao.AuditLogDAO();
-        request.setAttribute("logs", logDAO.getAllLogs());
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/admin/logs", String.class);
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+            if (json.has("data")) {
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                List<Map<String, Object>> logs = gson.fromJson(json.getAsJsonArray("data"), listType);
+                request.setAttribute("logs", logs);
+            }
+        } else {
+            request.setAttribute("logs", new ArrayList<>());
+        }
     }
 }

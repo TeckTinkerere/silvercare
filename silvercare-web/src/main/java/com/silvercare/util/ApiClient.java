@@ -57,13 +57,45 @@ public class ApiClient {
     }
 
     /**
-     * GET request with GenericType
+     * GET request with GenericType and Admin ID
      */
-    public static <T> ApiResponse<T> get(String endpoint, GenericType<T> responseType) {
+    public static <T> ApiResponse<T> get(String endpoint, GenericType<T> responseType, Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
+            Response response = invoker.get();
+
+            return handleResponse(response, responseType);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ApiResponse<>(500, null, "Error: " + e.getMessage());
+        } finally {
+            client.close();
+        }
+    }
+
+    /**
+     * GET request with GenericType
+     */
+    public static <T> ApiResponse<T> get(String endpoint, GenericType<T> responseType) {
+        return get(endpoint, responseType, null);
+    }
+
+    /**
+     * GET request with Admin ID
+     */
+    public static <T> ApiResponse<T> get(String endpoint, Class<T> responseType, Integer adminId) {
+        Client client = ClientBuilder.newClient();
+        try {
+            WebTarget target = client.target(API_BASE_URL + endpoint);
+            Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
             Response response = invoker.get();
 
             return handleResponse(response, responseType);
@@ -79,11 +111,22 @@ public class ApiClient {
      * GET request
      */
     public static <T> ApiResponse<T> get(String endpoint, Class<T> responseType) {
+        return get(endpoint, responseType, null);
+    }
+
+    /**
+     * POST request with GenericType and Admin ID
+     */
+    public static <T> ApiResponse<T> post(String endpoint, Object requestBody, GenericType<T> responseType,
+            Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
-            Response response = invoker.get();
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
+            Response response = invoker.post(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
 
             return handleResponse(response, responseType);
         } catch (Exception e) {
@@ -98,10 +141,20 @@ public class ApiClient {
      * POST request with GenericType
      */
     public static <T> ApiResponse<T> post(String endpoint, Object requestBody, GenericType<T> responseType) {
+        return post(endpoint, requestBody, responseType, null);
+    }
+
+    /**
+     * POST request with Admin ID
+     */
+    public static <T> ApiResponse<T> post(String endpoint, Object requestBody, Class<T> responseType, Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
             Response response = invoker.post(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
 
             return handleResponse(response, responseType);
@@ -117,11 +170,22 @@ public class ApiClient {
      * POST request
      */
     public static <T> ApiResponse<T> post(String endpoint, Object requestBody, Class<T> responseType) {
+        return post(endpoint, requestBody, responseType, null);
+    }
+
+    /**
+     * PUT request with GenericType and Admin ID
+     */
+    public static <T> ApiResponse<T> put(String endpoint, Object requestBody, GenericType<T> responseType,
+            Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
-            Response response = invoker.post(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
+            Response response = invoker.put(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
 
             return handleResponse(response, responseType);
         } catch (Exception e) {
@@ -136,10 +200,20 @@ public class ApiClient {
      * PUT request with GenericType
      */
     public static <T> ApiResponse<T> put(String endpoint, Object requestBody, GenericType<T> responseType) {
+        return put(endpoint, requestBody, responseType, null);
+    }
+
+    /**
+     * PUT request with Admin ID
+     */
+    public static <T> ApiResponse<T> put(String endpoint, Object requestBody, Class<T> responseType, Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
             Response response = invoker.put(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
 
             return handleResponse(response, responseType);
@@ -155,11 +229,21 @@ public class ApiClient {
      * PUT request
      */
     public static <T> ApiResponse<T> put(String endpoint, Object requestBody, Class<T> responseType) {
+        return put(endpoint, requestBody, responseType, null);
+    }
+
+    /**
+     * DELETE request with GenericType and Admin ID
+     */
+    public static <T> ApiResponse<T> delete(String endpoint, GenericType<T> responseType, Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
-            Response response = invoker.put(Entity.entity(requestBody, MediaType.APPLICATION_JSON));
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
+            Response response = invoker.delete();
 
             return handleResponse(response, responseType);
         } catch (Exception e) {
@@ -174,10 +258,20 @@ public class ApiClient {
      * DELETE request with GenericType
      */
     public static <T> ApiResponse<T> delete(String endpoint, GenericType<T> responseType) {
+        return delete(endpoint, responseType, null);
+    }
+
+    /**
+     * DELETE request with Admin ID
+     */
+    public static <T> ApiResponse<T> delete(String endpoint, Class<T> responseType, Integer adminId) {
         Client client = ClientBuilder.newClient();
         try {
             WebTarget target = client.target(API_BASE_URL + endpoint);
             Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
+            if (adminId != null) {
+                invoker.header("X-Admin-Id", adminId);
+            }
             Response response = invoker.delete();
 
             return handleResponse(response, responseType);
@@ -193,19 +287,7 @@ public class ApiClient {
      * DELETE request
      */
     public static <T> ApiResponse<T> delete(String endpoint, Class<T> responseType) {
-        Client client = ClientBuilder.newClient();
-        try {
-            WebTarget target = client.target(API_BASE_URL + endpoint);
-            Invocation.Builder invoker = target.request(MediaType.APPLICATION_JSON);
-            Response response = invoker.delete();
-
-            return handleResponse(response, responseType);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ApiResponse<>(500, null, "Error: " + e.getMessage());
-        } finally {
-            client.close();
-        }
+        return delete(endpoint, responseType, null);
     }
 
     /**

@@ -248,6 +248,37 @@ public class UserDBUtil {
         }
     }
 
+    private static final String SELECT_CUSTOMERS_BY_AREA = "SELECT * FROM silvercare.customer WHERE address LIKE ?";
+    private static final String DELETE_CUSTOMER = "DELETE FROM silvercare.customer WHERE customer_id = ?";
+
+    /**
+     * Get users by area
+     */
+    public java.util.List<User> getUsersByArea(String area) throws SQLException {
+        java.util.List<User> users = new java.util.ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(SELECT_CUSTOMERS_BY_AREA)) {
+            pstmt.setString(1, "%" + area + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapCustomerResultSetToUser(rs));
+                }
+            }
+        }
+        return users;
+    }
+
+    /**
+     * Delete user by ID
+     */
+    public boolean deleteUser(int id) throws SQLException {
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(DELETE_CUSTOMER)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
     /**
      * Update tutorial completion status safely without touching other profile data
      */

@@ -25,9 +25,9 @@ COPY --from=builder /app/target/silvercare-api.jar app.jar
 # Expose port 8081 (Spring Boot default for our API)
 EXPOSE 8081
 
-# Health check
+# Health check - use custom /s-api/status endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8081/actuator/health || exit 1
+    CMD curl -f http://localhost:8081/s-api/status || exit 1
 
 # Run the Spring Boot application
 ENTRYPOINT ["java", "-jar", "app.jar"]

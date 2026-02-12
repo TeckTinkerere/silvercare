@@ -7,23 +7,28 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import com.silvercare.dao.UserDAO;
-import java.sql.SQLException;
+
+import com.silvercare.util.ApiClient;
+import com.silvercare.model.User;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Servlet for Login page - Uses JAX-RS Client to call REST API
+ * Servlet for Login page - Uses ApiClient to call REST APIs
  */
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Forward to login.jsp
+        // Forward to login page
         RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/login.jsp");
         dispatcher.forward(request, response);
     }
@@ -31,63 +36,63 @@ public class LoginServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         String email = request.getParameter("email");
         String password = request.getParameter("password");
 
-        // Validate input
-        if (email == null || email.trim().isEmpty() ||
-                password == null || password.trim().isEmpty()) {
+        // Validate inputs
+        if (email == null || email.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             request.setAttribute("error", "Email and password are required");
             doGet(request, response);
             return;
         }
 
-        // Create login request object
-        Map<String, Object> loginRequest = new HashMap<>();
-        loginRequest.put("email", email);
-        loginRequest.put("password", password);
+        // Call REST API via ApiClient
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("email", email.trim());
+        credentials.put("password", password);
 
-        // Call UserDAO for direct JDBC authentication (MVC Topic 6 compliance)
-        UserDAO userDAO = new UserDAO();
-        try {
-            com.silvercare.model.User user = userDAO.authenticate(email, password);
+        ApiClient.ApiResponse<String> apiResponse = ApiClient.post("/users/login", credentials, String.class);
 
-            if (user != null) {
-                Integer userId = user.getId();
+        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+            try {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                User user = gson.fromJson(json.getAsJsonObject("user"), User.class);
 
-                // Create session (Topic 4)
-                HttpSession session = request.getSession(true);
-                session.setAttribute("user", user);
-                session.setAttribute("userId", userId);
-                session.setAttribute("sessUserID", userId);
-                session.setAttribute("username", user.getFullName());
-                session.setAttribute("userRole", user.getRole());
-                session.setAttribute("role", user.getRole());
-                session.setAttribute("tutorial_completed", user.isTutorialCompleted());
+                if (user != null) {
+                    // Set up session attributes
+                    HttpSession session = request.getSession(true);
+                    Integer userId = user.getId();
 
-                // Redirect based on role (Access Control Logic)
-                String role = user.getRole();
-                if ("admin".equalsIgnoreCase(role)) {
-                    session.setAttribute("admin_id", userId);
-                    session.setAttribute("admin_name", user.getFullName());
-                    session.removeAttribute("customer_id");
-                    response.sendRedirect(request.getContextPath() + "/admin/dashboard");
-                } else {
-                    session.setAttribute("customer_id", userId);
-                    session.setAttribute("customer_name", user.getFullName());
-                    session.setAttribute("profile_picture", user.getProfilePicture());
-                    session.removeAttribute("admin_id");
-                    response.sendRedirect(request.getContextPath() + "/dashboard");
+                    session.setAttribute("user", user);
+                    session.setAttribute("userId", userId);
+                    session.setAttribute("sessUserID", userId);
+                    session.setAttribute("username", user.getFullName());
+                    session.setAttribute("userRole", user.getRole());
+                    session.setAttribute("role", user.getRole());
+                    session.setAttribute("tutorial_completed", user.isTutorialCompleted());
+
+                    String role = user.getRole();
+                    if ("admin".equalsIgnoreCase(role)) {
+                        session.setAttribute("admin_id", userId);
+                        session.setAttribute("admin_name", user.getFullName());
+                        session.removeAttribute("customer_id");
+                        response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+                    } else {
+                        session.setAttribute("customer_id", userId);
+                        session.setAttribute("customer_name", user.getFullName());
+                        session.setAttribute("profile_picture", user.getProfilePicture());
+                        session.removeAttribute("admin_id");
+                        response.sendRedirect(request.getContextPath() + "/home");
+                    }
+                    return;
                 }
-            } else {
-                request.setAttribute("error", "Invalid email or password");
-                doGet(request, response);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            request.setAttribute("error", "Database error: " + e.getMessage());
-            doGet(request, response);
         }
+
+        // Login failed
+        request.setAttribute("error", "Invalid email or password");
+        doGet(request, response);
     }
 }

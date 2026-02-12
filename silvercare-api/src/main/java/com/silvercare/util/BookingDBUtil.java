@@ -31,7 +31,8 @@ public class BookingDBUtil {
 
     private static final String SELECT_BOOKINGS_BY_CUSTOMER = "SELECT * FROM silvercare.booking WHERE customer_id = ? ORDER BY created_at DESC";
 
-    private static final String SELECT_BOOKING_BY_ID = "SELECT * FROM silvercare.booking WHERE booking_id = ?";
+    private static final String SELECT_BOOKING_BY_ID = "SELECT b.*, c.full_name as customer_name FROM silvercare.booking b "
+            + "JOIN silvercare.customer c ON b.customer_id = c.customer_id WHERE b.booking_id = ?";
 
     private static final String SELECT_BOOKING_DETAILS = "SELECT bd.*, s.name as service_name FROM silvercare.booking_detail bd "
             +
@@ -42,6 +43,9 @@ public class BookingDBUtil {
     private static final String SELECT_ALL_BOOKINGS = "SELECT b.*, c.full_name as customer_name FROM silvercare.booking b "
             +
             "JOIN silvercare.customer c ON b.customer_id = c.customer_id ORDER BY b.created_at DESC";
+
+    private static final String SELECT_RECENT_BOOKINGS = "SELECT b.*, c.full_name as customer_name FROM silvercare.booking b "
+            + "JOIN silvercare.customer c ON b.customer_id = c.customer_id ORDER BY b.created_at DESC LIMIT ?";
 
     private static final String VERIFY_BOOKING_FOR_FEEDBACK = "SELECT b.booking_date, b.status " +
             "FROM silvercare.BOOKING b " +
@@ -146,6 +150,7 @@ public class BookingDBUtil {
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     Booking booking = mapResultSetToBooking(rs);
+                    booking.setCustomerName(rs.getString("customer_name"));
                     booking.setDetails(getBookingDetails(bookingId));
                     return booking;
                 }
@@ -166,6 +171,25 @@ public class BookingDBUtil {
                 Booking booking = mapResultSetToBooking(rs);
                 booking.setCustomerName(rs.getString("customer_name"));
                 bookings.add(booking);
+            }
+        }
+        return bookings;
+    }
+
+    /**
+     * Get recent bookings
+     */
+    public List<Booking> getRecentBookings(int limit) throws SQLException {
+        List<Booking> bookings = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(SELECT_RECENT_BOOKINGS)) {
+            pstmt.setInt(1, limit);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Booking booking = mapResultSetToBooking(rs);
+                    booking.setCustomerName(rs.getString("customer_name"));
+                    bookings.add(booking);
+                }
             }
         }
         return bookings;

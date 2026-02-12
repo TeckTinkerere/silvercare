@@ -97,8 +97,32 @@ public class UserDAO {
         return userDBUtil.updateTutorialStatus(userId, completed);
     }
 
-    public java.util.List<User> getAllCustomers() throws SQLException {
+    /**
+     * Get all users - delegates to utility bean
+     */
+    public java.util.List<User> getAllUsers() throws SQLException {
         return userDBUtil.getAllCustomers();
+    }
+
+    /**
+     * Legacy alias for getAllUsers
+     */
+    public java.util.List<User> getAllCustomers() throws SQLException {
+        return getAllUsers();
+    }
+
+    /**
+     * Get users by area - delegates to utility bean
+     */
+    public java.util.List<User> getUsersByArea(String area) throws SQLException {
+        return userDBUtil.getUsersByArea(area);
+    }
+
+    /**
+     * Delete user - delegates to utility bean
+     */
+    public boolean deleteUser(int id) throws SQLException {
+        return userDBUtil.deleteUser(id);
     }
 
     // Getter and Setter methods for field mappings

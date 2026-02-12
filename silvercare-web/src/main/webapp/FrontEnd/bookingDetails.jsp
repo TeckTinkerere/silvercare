@@ -34,7 +34,9 @@
                                         <h5 class="card-title text-muted">Booking Information</h5>
                                         <p class="card-text">
                                             <strong>Date:</strong>
-                                            <fmt:formatDate value="${booking.bookingDate}"
+                                            <fmt:parseDate value="${booking.bookingDate}"
+                                                pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="parsedDate" />
+                                            <fmt:formatDate value="${parsedDate}"
                                                 pattern="MMM dd, yyyy HH:mm" /><br>
                                             <strong>Total Amount:</strong>
                                             <fmt:setLocale value="en_US" />

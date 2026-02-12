@@ -6,124 +6,166 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import com.silvercare.dao.ServiceDAO;
+
+import com.silvercare.util.ApiClient;
 import com.silvercare.model.Service;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Traditional Servlet for Service operations - Uses JAX-RS Client to call REST
- * APIs
+ * Servlet for Service Catalog - Uses ApiClient to call REST APIs
  */
-@WebServlet("/ServiceServlet")
+@WebServlet(urlPatterns = { "/services", "/ServiceServlet" })
 public class ServiceServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
-    /**
-     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
         String action = request.getParameter("action");
 
-        if (action == null) {
-            action = "category"; // Default action
-        }
-
-        switch (action) {
-            case "category":
-                showServiceCatalog(request, response);
-                break;
-            case "details":
-                showServiceDetails(request, response);
-                break;
-            default:
-                response.sendRedirect(request.getContextPath() + "/home");
-                break;
+        if ("details".equals(action)) {
+            showServiceDetails(request, response);
+        } else {
+            showServiceCatalog(request, response);
         }
     }
 
-    /**
-     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
-     *      response)
-     */
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         doGet(request, response);
     }
 
     /**
-     * Show service catalog with categories
+     * Show service catalog with categories - via REST API
      */
     private void showServiceCatalog(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String categoryId = request.getParameter("category");
+        String search = request.getParameter("search");
 
-        ServiceDAO serviceDAO = new ServiceDAO();
         try {
-            // Get all categories via JDBC
-            List<Map<String, Object>> categories = serviceDAO.getAllCategories();
+            // Fetch categories via REST API
+            List<Map<String, Object>> categories = new ArrayList<>();
+            ApiClient.ApiResponse<String> catResponse = ApiClient.get("/services/categories", String.class);
+            if (catResponse.isSuccess() && catResponse.getData() != null) {
+                JsonObject catJson = gson.fromJson(catResponse.getData(), JsonObject.class);
+                JsonArray catArray = catJson.getAsJsonArray("data");
+                Type listType = new TypeToken<List<Map<String, Object>>>() {
+                }.getType();
+                categories = gson.fromJson(catArray, listType);
 
-            // For each category, fetch services via JDBC
-            List<Service> allServices = serviceDAO.getAllServices();
-
-            // Map services to categories for the view
-            for (Map<String, Object> category : categories) {
-                int categoryId = ((Number) category.get("id")).intValue();
-                List<Service> catServices = new java.util.ArrayList<>();
-                for (Service s : allServices) {
-                    if (s.getCategoryId() == categoryId) {
-                        catServices.add(s);
+                // Convert numeric IDs from Double to Integer
+                for (Map<String, Object> category : categories) {
+                    if (category.get("id") instanceof Number) {
+                        category.put("id", ((Number) category.get("id")).intValue());
                     }
                 }
-                category.put("services", catServices);
+
+                request.setAttribute("categories", categories);
+            } else {
+                request.setAttribute("categories", categories);
             }
 
-            request.setAttribute("categories", categories);
+            // Fetch services via REST API
+            String serviceEndpoint;
+            if (search != null && !search.trim().isEmpty()) {
+                serviceEndpoint = "/services/search?query=" + java.net.URLEncoder.encode(search.trim(), "UTF-8");
+            } else if (categoryId != null && !categoryId.trim().isEmpty()) {
+                serviceEndpoint = "/services/category/" + categoryId;
+            } else {
+                serviceEndpoint = "/services";
+            }
+
+            ApiClient.ApiResponse<String> svcResponse = ApiClient.get(serviceEndpoint, String.class);
+            if (svcResponse.isSuccess() && svcResponse.getData() != null) {
+                JsonObject svcJson = gson.fromJson(svcResponse.getData(), JsonObject.class);
+                JsonArray dataArray = svcJson.getAsJsonArray("data");
+                Type serviceListType = new TypeToken<List<Service>>() {
+                }.getType();
+                List<Service> services = gson.fromJson(dataArray, serviceListType);
+
+                request.setAttribute("services", services);
+
+                // Group services by category and attach to category objects
+                for (Map<String, Object> category : categories) {
+                    List<Service> categoryServices = new ArrayList<>();
+                    Object catIdObj = category.get("id");
+                    int catId = -1;
+
+                    if (catIdObj instanceof Number) {
+                        catId = ((Number) catIdObj).intValue();
+                    } else if (catIdObj instanceof String) {
+                        try {
+                            catId = (int) Double.parseDouble((String) catIdObj);
+                        } catch (NumberFormatException e) {
+                            continue;
+                        }
+                    }
+
+                    for (Service service : services) {
+                        if (catId == service.getCategoryId()) {
+                            categoryServices.add(service);
+                        }
+                    }
+                    category.put("services", categoryServices);
+                }
+            } else {
+                request.setAttribute("services", new ArrayList<>());
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("error", "Failed to load services: " + e.getMessage());
+            request.setAttribute("categories", new ArrayList<>());
+            request.setAttribute("services", new ArrayList<>());
+            request.setAttribute("servicesByCategory", new HashMap<>());
         }
 
-        // Forward to JSP
         RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/serviceCategory.jsp");
         dispatcher.forward(request, response);
     }
 
     /**
-     * Show service details
+     * Show service details - via REST API
      */
     private void showServiceDetails(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String idParam = request.getParameter("id");
-        if (idParam == null) {
-            response.sendRedirect(request.getContextPath() + "/ServiceServlet?action=category");
-            return;
-        }
+        String idStr = request.getParameter("id");
 
-        try {
-            int id = Integer.parseInt(idParam);
-            ServiceDAO serviceDAO = new ServiceDAO();
+        if (idStr != null) {
+            try {
+                // Fetch service details from API (includes category name)
+                ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/services/" + idStr, String.class);
 
-            // Get service by ID via JDBC
-            Service service = serviceDAO.getServiceById(id);
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                    JsonObject dataObj = json.getAsJsonObject("data");
+                    Service service = gson.fromJson(dataObj, Service.class);
+                    request.setAttribute("service", service);
 
-            if (service != null) {
-                String categoryName = service.getCategoryName() != null ? service.getCategoryName() : "General";
-
-                request.setAttribute("service", service);
-                request.setAttribute("categoryName", categoryName);
-
-                // Forward to JSP
-                RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/serviceDetails.jsp");
-                dispatcher.forward(request, response);
-            } else {
-                response.sendRedirect(request.getContextPath() + "/ServiceServlet?action=category");
+                    // Set category name from the service object (API now includes it)
+                    if (service.getCategoryName() != null && !service.getCategoryName().isEmpty()) {
+                        request.setAttribute("categoryName", service.getCategoryName());
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + "/ServiceServlet?action=category&error=load_failed");
         }
+
+        RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/serviceDetails.jsp");
+        dispatcher.forward(request, response);
     }
 }

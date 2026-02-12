@@ -59,7 +59,7 @@ public class BookingDBUtil {
             "(SELECT SUM(total_amount) FROM silvercare.booking WHERE status != 'Cancelled') as total_revenue, " +
             "(SELECT COUNT(*) FROM silvercare.booking) as total_bookings, " +
             "(SELECT COUNT(*) FROM silvercare.customer) as total_clients, " +
-            "(SELECT COUNT(*) FROM silvercare.service WHERE is_active = true) as total_services";
+            "(SELECT COUNT(*) FROM silvercare.service) as total_services";
 
     public int createBooking(int customerId, Timestamp bookingDate, String status,
             double total, double gst, String paymentIntentId,

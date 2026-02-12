@@ -33,71 +33,66 @@
                                             aria-label="Close"></button>
                                     </div>
                                 </c:if>
-                                <%
-                                      // Check if user is logged in
-                                     boolean loggedIn = session.getAttribute("customer_id") != null;
+                                <c:if test="${not empty success}">
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-check-circle me-2"></i>${success}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                    </div>
+                                </c:if>
+                                <c:set var="loggedIn" value="${not empty sessionScope.customer_id}" />
+                                <c:set var="userName" value="${loggedIn ? sessionScope.customer_name : ''}" />
+                                <c:set var="userEmail" value="${loggedIn ? sessionScope.customer_email : ''}" />
 
-                                    String userName = loggedIn
-                                        ? (String) session.getAttribute("customer_name")
-                                        : "";
+                                <form action="${pageContext.request.contextPath}/contact" method="POST">
 
-                                    String userEmail = loggedIn && session.getAttribute("customer_email") != null
-                                        ? (String) session.getAttribute("customer_email")
-                                        : "";
-                                %>
-
-<form action="<%= request.getContextPath() %>/ContactServlet" method="POST">
-
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label for="name" class="form-label fw-semibold">
-                                                    <i class="fas fa-user text-primary me-2"></i>Full Name *
-                                                </label>
-                                                <input type="text" class="form-control form-control-lg" id="name"
-                                                    name="name" value="<%= userName %>" placeholder="John Doe"
-                                                    <%=loggedIn ? "readonly" : "" %>
-                                                required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="email" class="form-label fw-semibold">
-                                                    <i class="fas fa-envelope text-primary me-2"></i>Email Address *
-                                                </label>
-                                                <input type="email" class="form-control form-control-lg" id="email"
-                                                    name="email" value="<%= userEmail %>" placeholder="john@example.com"
-                                                    <%=loggedIn ? "readonly" : "" %>
-                                                required>
-                                            </div>
-                                            <div class="col-12">
-                                                <label for="phone" class="form-label fw-semibold">
-                                                    <i class="fas fa-phone text-primary me-2"></i>Phone Number
-                                                    (Optional)
-                                                </label>
-                                                <input type="tel" class="form-control form-control-lg" id="phone"
-                                                    name="phone" placeholder="+65 1234 5678">
-                                            </div>
-                                            <div class="col-12">
-                                                <label for="subject" class="form-label fw-semibold">
-                                                    <i class="fas fa-tag text-primary me-2"></i>Subject *
-                                                </label>
-                                                <input type="text" class="form-control form-control-lg" id="subject"
-                                                    name="subject" placeholder="How can we help you?" required>
-                                            </div>
-                                            <div class="col-12">
-                                                <label for="message" class="form-label fw-semibold">
-                                                    <i class="fas fa-comment-dots text-primary me-2"></i>Message *
-                                                </label>
-                                                <textarea class="form-control form-control-lg" id="message"
-                                                    name="message" rows="6"
-                                                    placeholder="Tell us more about your inquiry..."
-                                                    required></textarea>
-                                            </div>
-                                            <div class="col-12 text-center mt-4">
-                                                <button type="submit" class="btn btn-primary btn-lg px-5">
-                                                    <i class="fas fa-paper-plane me-2"></i>Send Message
-                                                </button>
-                                            </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="name" class="form-label fw-semibold">
+                                                <i class="fas fa-user text-primary me-2"></i>Full Name *
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg" id="name"
+                                                name="name" value="${userName}" placeholder="John Doe" ${loggedIn
+                                                ? "readonly" : "" } required>
                                         </div>
-                                    </form>
+                                        <div class="col-md-6">
+                                            <label for="email" class="form-label fw-semibold">
+                                                <i class="fas fa-envelope text-primary me-2"></i>Email Address *
+                                            </label>
+                                            <input type="email" class="form-control form-control-lg" id="email"
+                                                name="email" value="${userEmail}" placeholder="john@example.com"
+                                                ${loggedIn ? "readonly" : "" } required>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="phone" class="form-label fw-semibold">
+                                                <i class="fas fa-phone text-primary me-2"></i>Phone Number
+                                                (Optional)
+                                            </label>
+                                            <input type="tel" class="form-control form-control-lg" id="phone"
+                                                name="phone" placeholder="+65 1234 5678">
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="subject" class="form-label fw-semibold">
+                                                <i class="fas fa-tag text-primary me-2"></i>Subject *
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg" id="subject"
+                                                name="subject" placeholder="How can we help you?" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="message" class="form-label fw-semibold">
+                                                <i class="fas fa-comment-dots text-primary me-2"></i>Message *
+                                            </label>
+                                            <textarea class="form-control form-control-lg" id="message" name="message"
+                                                rows="6" placeholder="Tell us more about your inquiry..."
+                                                required></textarea>
+                                        </div>
+                                        <div class="col-12 text-center mt-4">
+                                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>

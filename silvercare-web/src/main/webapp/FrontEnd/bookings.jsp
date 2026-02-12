@@ -66,8 +66,12 @@
                                                                         <td>
                                                                             <c:if
                                                                                 test="${not empty booking.bookingDate}">
-                                                                                <fmt:formatDate
+                                                                                <fmt:parseDate 
                                                                                     value="${booking.bookingDate}"
+                                                                                    pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" 
+                                                                                    var="parsedDate" />
+                                                                                <fmt:formatDate
+                                                                                    value="${parsedDate}"
                                                                                     pattern="MMM dd, yyyy HH:mm" />
                                                                             </c:if>
                                                                             <c:if test="${empty booking.bookingDate}">

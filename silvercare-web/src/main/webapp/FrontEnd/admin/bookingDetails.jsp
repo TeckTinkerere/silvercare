@@ -24,106 +24,14 @@
                 <!-- Global Styles -->
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/FrontEnd/styles.css">
                 <style>
-                    :root {
-                        --sidebar-width: 280px;
-                        --primary-color: #5b7c99;
-                        --secondary-color: #2c3e50;
-                        --accent-color: #f39c12;
-                    }
-
-                    body {
-                        background-color: #f8f9fa;
-                        overflow-x: hidden;
-                    }
-
-                    .sidebar {
-                        width: var(--sidebar-width);
-                        background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-                        color: white;
-                        position: fixed;
-                        left: calc(-1 * var(--sidebar-width));
-                        top: 0;
-                        height: 100vh;
-                        z-index: 1040;
-                        transition: all 0.3s ease;
-                        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-                    }
-
-                    .sidebar.show {
-                        left: 0;
-                    }
-
-                    .sidebar-brand {
-                        padding: 1.5rem;
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    }
-
-                    .nav-link {
-                        color: rgba(255, 255, 255, 0.8);
-                        padding: .875rem 1.5rem;
-                        margin: .25rem .75rem;
-                        border-radius: 8px;
-                        font-weight: 500;
-                        display: flex;
-                        align-items: center;
-                        transition: .2s;
-                    }
-
-                    .nav-link i {
-                        margin-right: .75rem;
-                    }
-
-                    .nav-link.active,
-                    .nav-link:hover {
-                        background-color: var(--accent-color);
-                        color: white;
-                    }
-
-                    .content {
-                        padding: 1rem;
-                        width: 100%;
-                        transition: all 0.3s ease;
-                    }
-
-                    @media (min-width: 992px) {
-                        .sidebar {
-                            left: 0;
-                        }
-
-                        .content {
-                            margin-left: var(--sidebar-width);
-                            width: calc(100% - var(--sidebar-width));
-                            padding: 2rem;
-                        }
-                    }
+                    /* Additional custom styles if needed */
                 </style>
             </head>
 
             <body>
                 <!-- Sidebar -->
-                <div class="sidebar d-flex flex-column" id="sidebar">
-                    <div class="sidebar-brand d-flex justify-content-between align-items-center">
-                        <a href="${pageContext.request.contextPath}/admin/dashboard"
-                            class="text-white text-decoration-none h4 mb-0">
-                            <i class="bi bi-heart-fill"></i> SilverCare
-                        </a>
-                    </div>
-
-                    <ul class="nav nav-pills flex-column mt-3">
-                        <li><a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link"><i
-                                    class="bi bi-grid"></i>Dashboard</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/services" class="nav-link"><i
-                                    class="bi bi-box-seam"></i>Services</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/categories" class="nav-link"><i
-                                    class="bi bi-tags"></i>Categories</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/bookings" class="nav-link active"><i
-                                    class="bi bi-calendar-check"></i>Bookings</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/feedback" class="nav-link"><i
-                                    class="bi bi-chat-left-text"></i>Feedback</a></li>
-                        <li><a href="${pageContext.request.contextPath}/admin/users" class="nav-link"><i
-                                    class="bi bi-people"></i>Users</a></li>
-                    </ul>
-                </div>
+                <c:set var="activePage" value="bookings" />
+                <jsp:include page="adminSidebar.jsp" />
 
                 <div class="content">
                     <div class="mb-4">
@@ -161,17 +69,37 @@
                                     <div class="row mb-3">
                                         <div class="col-sm-4 text-muted">Booking Date & Time</div>
                                         <div class="col-sm-8 fw-semibold">
-                                            <fmt:parseDate value="${booking.bookingDate}"
-                                                pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="parsedDate" />
-                                            <fmt:formatDate value="${parsedDate}" pattern="dd MMM yyyy, HH:mm a" />
+                                            <c:catch var="bookingDateError">
+                                                <fmt:parseDate value="${booking.bookingDate}"
+                                                    pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="parsedBookingDate" />
+                                            </c:catch>
+                                            <c:choose>
+                                                <c:when test="${empty bookingDateError && not empty parsedBookingDate}">
+                                                    <fmt:formatDate value="${parsedBookingDate}"
+                                                        pattern="dd MMM yyyy, HH:mm a" />
+                                                </c:when>
+                                                <c:otherwise>
+                                                    ${booking.bookingDate}
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                     <div class="row mb-3">
                                         <div class="col-sm-4 text-muted">Created At</div>
                                         <div class="col-sm-8 fw-semibold">
-                                            <fmt:parseDate value="${booking.createdAt}"
-                                                pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="createdDate" />
-                                            <fmt:formatDate value="${createdDate}" pattern="dd MMM yyyy, HH:mm a" />
+                                            <c:catch var="createdDateError">
+                                                <fmt:parseDate value="${booking.createdAt}"
+                                                    pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" var="createdDate" />
+                                            </c:catch>
+                                            <c:choose>
+                                                <c:when test="${empty createdDateError && not empty createdDate}">
+                                                    <fmt:formatDate value="${createdDate}"
+                                                        pattern="dd MMM yyyy, HH:mm a" />
+                                                </c:when>
+                                                <c:otherwise>
+                                                    ${booking.createdAt}
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                     <div class="row mb-3">

@@ -9,7 +9,6 @@ public class Service {
     private String description;
     private BigDecimal price;
     private String imagePath;
-    private boolean isActive;
 
     // Transient field for display
     private String categoryName;
@@ -61,14 +60,6 @@ public class Service {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
-    }
-
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean isActive) {
-        this.isActive = isActive;
     }
 
     public String getCategoryName() {

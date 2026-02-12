@@ -54,61 +54,86 @@
                                                 <p>Your cart is empty.</p>
                                             </c:when>
                                             <c:otherwise>
-                                                <c:set var="totalPrice" value="0" />
-                                                <c:forEach var="item" items="${cart}">
-                                                    <c:set var="itemQty" value="${empty item.qty ? 1 : item.qty}" />
-                                                    <c:set var="lineTotal" value="${item.price * itemQty}" />
-                                                    <c:set var="totalPrice" value="${totalPrice + lineTotal}" />
-                                                    <div class="border-bottom py-4">
-                                                        <div class="row align-items-center">
-                                                            <div class="col-md-2 d-none d-md-block">
-                                                                <c:if test="${not empty item.image}">
-                                                                    <img src="${pageContext.request.contextPath}/FrontEnd/images/${item.image.replace('images/', '')}"
-                                                                        alt="${item.name}"
-                                                                        class="img-fluid rounded shadow-sm">
-                                                                </c:if>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <h5 class="mb-1 fw-bold">${item.name}</h5>
-                                                                <p class="text-muted small mb-0">${item.description}</p>
-                                                            </div>
-                                                            <div class="col-md-3">
-                                                                <form method="POST"
-                                                                    action="${pageContext.request.contextPath}/CartServlet"
-                                                                    class="d-flex align-items-center gap-2">
-                                                                    <input type="hidden" name="action" value="update">
-                                                                    <input type="hidden" name="id" value="${item.id}">
-                                                                    <label
-                                                                        class="form-label mb-0 small text-muted">Qty:</label>
-                                                                    <input type="number" name="qty" value="${itemQty}"
-                                                                        min="1" max="10"
-                                                                        class="form-control form-control-sm"
-                                                                        style="width: 65px;">
-                                                                    <button type="submit"
-                                                                        class="btn btn-outline-primary btn-sm">
-                                                                        <i class="fas fa-sync-alt"></i>
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                            <div class="col-md-3 text-end">
-                                                                <div class="price-summary mb-2">
-                                                                    <span class="text-muted small">Unit: $
-                                                                        <fmt:formatNumber value="${item.price}"
-                                                                            type="currency" currencySymbol="" />
-                                                                    </span><br>
-                                                                    <span class="fw-bold fs-5">$
-                                                                        <fmt:formatNumber value="${lineTotal}"
-                                                                            type="currency" currencySymbol="" />
-                                                                    </span>
-                                                                </div>
-                                                                <a href="${pageContext.request.contextPath}/CartServlet?action=remove&id=${item.id}"
-                                                                    class="btn btn-outline-danger btn-sm rounded-pill">
-                                                                    <i class="fas fa-trash-alt me-1"></i> Remove
-                                                                </a>
-                                                            </div>
-                                                        </div>
+                                                <form id="cartSelectionForm"
+                                                    action="${pageContext.request.contextPath}/BookingServlet?action=prepareSelection"
+                                                    method="POST">
+                                                    <div class="table-responsive">
+                                                        <table class="table align-middle">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th style="width: 40px;">
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input"
+                                                                                type="checkbox" id="selectAll" checked>
+                                                                        </div>
+                                                                    </th>
+                                                                    <th colspan="2">Service</th>
+                                                                    <th>Quantity</th>
+                                                                    <th class="text-end">Price</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <c:set var="totalPrice" value="0" />
+                                                                <c:forEach var="item" items="${cart}">
+                                                                    <c:set var="itemQty"
+                                                                        value="${empty item.qty ? 1 : item.qty}" />
+                                                                    <c:set var="lineTotal"
+                                                                        value="${item.price * itemQty}" />
+                                                                    <c:set var="totalPrice"
+                                                                        value="${totalPrice + lineTotal}" />
+                                                                    <tr>
+                                                                        <td>
+                                                                            <div class="form-check">
+                                                                                <input
+                                                                                    class="form-check-input item-checkbox"
+                                                                                    type="checkbox" name="selectedItems"
+                                                                                    value="${item.id}" checked>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td style="width: 80px;">
+                                                                            <c:if test="${not empty item.image}">
+                                                                                <img src="${pageContext.request.contextPath}/FrontEnd/images/${item.image.replace('images/', '')}"
+                                                                                    alt="${item.name}"
+                                                                                    class="img-fluid rounded shadow-sm">
+                                                                            </c:if>
+                                                                        </td>
+                                                                        <td>
+                                                                            <h6 class="mb-1 fw-bold">${item.name}</h6>
+                                                                            <p class="text-muted small mb-0">
+                                                                                ${item.description}</p>
+                                                                        </td>
+                                                                        <td>
+                                                                            <div
+                                                                                class="d-flex align-items-center gap-2">
+                                                                                <a href="${pageContext.request.contextPath}/CartServlet?action=update&id=${item.id}&qty=${itemQty - 1}"
+                                                                                    class="btn btn-outline-secondary btn-sm ${itemQty <= 1 ? 'disabled' : ''}">-</a>
+                                                                                <span class="mx-2">${itemQty}</span>
+                                                                                <a href="${pageContext.request.contextPath}/CartServlet?action=update&id=${item.id}&qty=${itemQty + 1}"
+                                                                                    class="btn btn-outline-secondary btn-sm">+</a>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td class="text-end">
+                                                                            <div class="price-summary">
+                                                                                <span class="fw-bold">$
+                                                                                    <fmt:formatNumber
+                                                                                        value="${lineTotal}"
+                                                                                        type="number"
+                                                                                        minFractionDigits="2"
+                                                                                        maxFractionDigits="2" />
+                                                                                </span>
+                                                                                <br>
+                                                                                <a href="${pageContext.request.contextPath}/CartServlet?action=remove&id=${item.id}"
+                                                                                    class="btn btn-link btn-sm text-danger p-0 mt-1">
+                                                                                    <i class="fas fa-trash-alt"></i>
+                                                                                </a>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                </c:forEach>
+                                                            </tbody>
+                                                        </table>
                                                     </div>
-                                                </c:forEach>
+                                                </form>
                                             </c:otherwise>
                                         </c:choose>
                                     </div>
@@ -142,9 +167,9 @@
                                             </span>
                                         </div>
                                         <div class="d-grid">
-                                            <a href="${pageContext.request.contextPath}/BookingServlet?action=form"
+                                            <button type="button" id="proceedToBookingBtn"
                                                 class="btn btn-primary ${empty cart ? 'disabled' : ''}">Proceed
-                                                to Booking</a>
+                                                to Booking</button>
                                         </div>
                                     </div>
                                 </div>
@@ -154,3 +179,73 @@
 
                     <%-- Include Footer --%>
                         <jsp:include page="footer.jsp"></jsp:include>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                const selectAll = document.getElementById('selectAll');
+                                const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+                                const selectionForm = document.getElementById('cartSelectionForm');
+                                const proceedBtn = document.getElementById('proceedToBookingBtn');
+
+                                // Handle Select All
+                                if (selectAll) {
+                                    selectAll.addEventListener('change', function () {
+                                        itemCheckboxes.forEach(cb => {
+                                            cb.checked = selectAll.checked;
+                                        });
+                                        updateTotal();
+                                    });
+                                }
+
+                                // Update total when selection changes
+                                itemCheckboxes.forEach(cb => {
+                                    cb.addEventListener('change', function () {
+                                        updateTotal();
+                                        // Update Select All state
+                                        const allChecked = Array.from(itemCheckboxes).every(c => c.checked);
+                                        selectAll.checked = allChecked;
+                                    });
+                                });
+
+                                // Submit selection form
+                                if (proceedBtn) {
+                                    proceedBtn.addEventListener('click', function () {
+                                        const selectedCount = Array.from(itemCheckboxes).filter(c => c.checked).length;
+                                        if (selectedCount === 0) {
+                                            alert('Please select at least one service to proceed.');
+                                            return;
+                                        }
+                                        selectionForm.submit();
+                                    });
+                                }
+
+                                function updateTotal() {
+                                    let subtotal = 0;
+                                    itemCheckboxes.forEach(cb => {
+                                        if (cb.checked) {
+                                            // Find the price in the same row
+                                            const row = cb.closest('tr');
+                                            const priceText = row.querySelector('.price-summary span').innerText;
+                                            const price = parseFloat(priceText.replace('$', '').replace(',', ''));
+                                            subtotal += price;
+                                        }
+                                    });
+
+                                    const gst = subtotal * 0.09;
+                                    const grandTotal = subtotal + gst;
+
+                                    // Update display
+                                    const summaryCard = document.querySelector('.col-lg-4 .card-body');
+                                    if (summaryCard) {
+                                        summaryCard.querySelector('div:nth-child(2) span:last-child').innerText = '$' + subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        summaryCard.querySelector('div:nth-child(3) span:last-child').innerText = '$' + gst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        summaryCard.querySelector('.fw-bold.fs-5').innerText = '$' + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    }
+
+                                    // Enable/disable proceed button
+                                    if (proceedBtn) {
+                                        proceedBtn.classList.toggle('disabled', subtotal === 0);
+                                    }
+                                }
+                            });
+                        </script>

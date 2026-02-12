@@ -7,11 +7,12 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import com.silvercare.dao.ServiceDAO;
-import com.silvercare.model.Service;
+
+import com.silvercare.util.ApiClient;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -19,11 +20,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Traditional Servlet for Cart operations
+ * Servlet for Cart operations - Uses ApiClient to call REST APIs
  */
 @WebServlet("/CartServlet")
 public class CartServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Gson gson = ApiClient.getGson();
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -52,13 +54,38 @@ public class CartServlet extends HttpServlet {
         }
     }
 
+    private int parseId(String idStr) {
+        if (idStr == null || idStr.trim().isEmpty())
+            return 0;
+        try {
+            return Integer.parseInt(idStr);
+        } catch (NumberFormatException e) {
+            try {
+                return (int) Double.parseDouble(idStr);
+            } catch (Exception e2) {
+                return 0;
+            }
+        }
+    }
+
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String action = request.getParameter("action");
-        if ("update".equals(action)) {
-            updateCartItem(request, response);
-        } else {
-            doGet(request, response);
+
+        if (action == null) {
+            action = "view";
+        }
+
+        switch (action) {
+            case "add":
+                addToCart(request, response);
+                break;
+            case "update":
+                updateCartItem(request, response);
+                break;
+            default:
+                doGet(request, response);
+                break;
         }
     }
 
@@ -68,6 +95,9 @@ public class CartServlet extends HttpServlet {
         dispatcher.forward(request, response);
     }
 
+    /**
+     * Add item to cart - fetches service details via REST API
+     */
     private void addToCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -91,14 +121,20 @@ public class CartServlet extends HttpServlet {
         }
 
         try {
-            int serviceId = Integer.parseInt(serviceIdStr);
+            int serviceId = parseId(serviceIdStr);
+            if (serviceId <= 0) {
+                response.sendRedirect(request.getContextPath() + "/FrontEnd/serviceCategory.jsp?error=invalid_id");
+                return;
+            }
 
-            try {
-                // Use local DAO to get service by ID
-                ServiceDAO serviceDAO = new ServiceDAO();
-                Service service = serviceDAO.getServiceById(serviceId);
+            // Fetch service details via REST API
+            ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/services/" + serviceId, String.class);
 
-                if (service != null) {
+            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
+                JsonObject serviceData = json.getAsJsonObject("data");
+
+                if (serviceData != null) {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> cart = (List<Map<String, Object>>) session.getAttribute("cart");
                     if (cart == null) {
@@ -117,11 +153,13 @@ public class CartServlet extends HttpServlet {
 
                     if (!exists) {
                         Map<String, Object> item = new HashMap<>();
-                        item.put("id", service.getId());
-                        item.put("name", service.getName());
-                        item.put("price", service.getPrice().doubleValue());
-                        item.put("image", service.getImagePath());
-                        item.put("description", service.getDescription());
+                        item.put("id", serviceData.has("id") ? serviceData.get("id").getAsInt() : serviceId);
+                        item.put("name", serviceData.has("name") ? serviceData.get("name").getAsString() : "");
+                        item.put("price", serviceData.has("price") ? serviceData.get("price").getAsDouble() : 0.0);
+                        item.put("image",
+                                serviceData.has("imagePath") ? serviceData.get("imagePath").getAsString() : "");
+                        item.put("description",
+                                serviceData.has("description") ? serviceData.get("description").getAsString() : "");
                         cart.add(item);
                     }
 
@@ -131,9 +169,8 @@ public class CartServlet extends HttpServlet {
                 } else {
                     response.sendRedirect(request.getContextPath() + "/FrontEnd/serviceCategory.jsp?error=not_found");
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                response.sendRedirect(request.getContextPath() + "/FrontEnd/serviceCategory.jsp?error=database_error");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/FrontEnd/serviceCategory.jsp?error=not_found");
             }
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/FrontEnd/serviceCategory.jsp?error=invalid_id");
@@ -151,7 +188,7 @@ public class CartServlet extends HttpServlet {
         }
 
         try {
-            int serviceIdToRemove = Integer.parseInt(serviceIdStr);
+            int serviceIdToRemove = parseId(serviceIdStr);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> cart = (List<Map<String, Object>>) session.getAttribute("cart");
 
@@ -189,7 +226,7 @@ public class CartServlet extends HttpServlet {
         }
 
         try {
-            int serviceId = Integer.parseInt(serviceIdStr);
+            int serviceId = parseId(serviceIdStr);
             int qty = Integer.parseInt(qtyStr);
 
             @SuppressWarnings("unchecked")
@@ -197,7 +234,6 @@ public class CartServlet extends HttpServlet {
 
             if (cart != null) {
                 if (qty <= 0) {
-                    // If quantity is 0 or negative, remove the item
                     cart.removeIf(item -> ((Number) item.get("id")).intValue() == serviceId);
                 } else {
                     for (Map<String, Object> item : cart) {

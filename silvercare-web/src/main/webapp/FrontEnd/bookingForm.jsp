@@ -239,9 +239,22 @@
                                                             Payment Details
                                                         </h5>
                                                         <div id="card-element"
-                                                            class="form-control form-control-lg py-3">
+                                                            class="form-control form-control-lg py-3 mb-3">
                                                             <!-- Stripe Element will be inserted here -->
                                                         </div>
+
+                                                        <!-- Separate Postal Code Field for Singapore (6 digits) -->
+                                                        <div class="mb-3">
+                                                            <label for="postal-code" class="form-label">Postal
+                                                                Code</label>
+                                                            <input type="text" class="form-control form-control-lg"
+                                                                id="postal-code" name="postalCode"
+                                                                placeholder="Enter 6-digit postal code" maxlength="6"
+                                                                pattern="[0-9]{6}" required>
+                                                            <small class="text-muted">Singapore postal codes are 6
+                                                                digits</small>
+                                                        </div>
+
                                                         <div id="card-errors" role="alert"
                                                             class="text-danger small mt-2"></div>
                                                         <input type="hidden" name="paymentIntentId"
@@ -334,10 +347,25 @@
                                                     <div class="px-4 pb-4">
                                                         <hr class="mt-0">
                                                         <div class="pricing-info">
-                                                            <p class="small text-muted mb-2">
+                                                            <div class="d-flex justify-content-between mb-2">
+                                                                <span class="text-muted small">Subtotal</span>
+                                                                <span id="summary-subtotal"
+                                                                    class="fw-semibold small">$0.00</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between mb-2">
+                                                                <span class="text-muted small">GST (9%)</span>
+                                                                <span id="summary-gst"
+                                                                    class="fw-semibold small">$0.00</span>
+                                                            </div>
+                                                            <div
+                                                                class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                                                <span class="fw-bold">Total Amount</span>
+                                                                <span id="summary-total"
+                                                                    class="fw-bold text-primary fs-5">$0.00</span>
+                                                            </div>
+                                                            <p class="small text-muted mb-2 mt-3">
                                                                 <i class="fas fa-info-circle me-2"></i>
-                                                                Final price will be calculated based on duration and
-                                                                frequency
+                                                                Final price calculated based on duration
                                                             </p>
                                                         </div>
                                                     </div>
@@ -557,7 +585,7 @@
 
                 <!-- Custom JavaScript -->
                 <script>
-                    // Set minimum date to tomorrow
+                    // Set minimum date to tomorrow and update price
                     document.addEventListener('DOMContentLoaded', function () {
                         const dateInput = document.getElementById('bookingDate');
                         const today = new Date();
@@ -567,7 +595,36 @@
 
                         // Set default date to tomorrow
                         dateInput.value = minDate;
+
+                        // Initial price update
+                        updateSummaryPrice();
                     });
+
+                    // Listen for duration changes to update price
+                    document.getElementById('duration').addEventListener('change', updateSummaryPrice);
+
+                    function updateSummaryPrice() {
+                        const duration = parseInt(document.getElementById('duration').value) || 1;
+                        let subtotal = 0;
+
+                        <c:choose>
+                            <c:when test="${not empty service}">
+                                subtotal = ${service.price} * duration;
+                            </c:when>
+                            <c:otherwise>
+                                <c:forEach var="item" items="${cartItems}">
+                                    subtotal += ${item.price} * duration;
+                                </c:forEach>
+                            </c:otherwise>
+                        </c:choose>
+
+                        const gst = subtotal * 0.09;
+                        const total = subtotal + gst;
+
+                        document.getElementById('summary-subtotal').innerText = '$' + subtotal.toFixed(2);
+                        document.getElementById('summary-gst').innerText = '$' + gst.toFixed(2);
+                        document.getElementById('summary-total').innerText = '$' + total.toFixed(2);
+                    }
 
                     // Form validation
                     document.getElementById('bookingForm').addEventListener('submit', function (e) {
@@ -605,7 +662,9 @@
                                 fontSize: '16px',
                                 color: '#32325d',
                             }
-                        }
+                        },
+                        // Hide postal code from card element - we'll use a separate field for 6-digit Singapore postal codes
+                        hidePostalCode: true
                     });
                     card.mount('#card-element');
 
@@ -614,7 +673,14 @@
                     const spinner = document.getElementById('spinner');
                     const buttonText = document.getElementById('button-text');
 
+                    let paymentProcessed = false; // Flag to track if payment is done
+
                     form.addEventListener('submit', async function (e) {
+                        // If payment already processed, allow normal form submission
+                        if (paymentProcessed) {
+                            return true;
+                        }
+
                         e.preventDefault();
 
                         if (!document.getElementById('agreeTerms').checked) {
@@ -624,28 +690,47 @@
 
                         setLoading(true);
 
-                        // 1. Calculate Amount (Frontend simulation for simplicity, but backend should verify)
-                        let amount = 0;
-                        <c:choose>
-                            <c:when test="${not empty service}">
-                                amount = ${service.price} * document.getElementById('duration').value;
-                            </c:when>
-                            <c:otherwise>
-                                <c:forEach var="item" items="${cartItems}">
-                                    amount += ${item.price} * document.getElementById('duration').value;
-                                </c:forEach>
-                            </c:otherwise>
-                        </c:choose>
-
-                        // Add 9% GST
-                        amount = amount * 1.09;
-
                         try {
+                            // 1. Calculate Amount using current UI values
+                            const duration = parseInt(document.getElementById('duration').value) || 1;
+                            let subtotal = 0;
+                            <c:choose>
+                                <c:when test="${not empty service}">
+                                    subtotal = ${service.price} * duration;
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="item" items="${cartItems}">
+                                        subtotal += ${item.price} * duration;
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
+
+                            const amount = subtotal * 1.09;
+
+                            console.log('Calculated amount before GST:', subtotal);
+                            console.log('Final amount with GST:', amount);
+
+                            // Stripe requires minimum $0.50 for SGD
+                            if (amount < 0.50) {
+                                alert('The calculated amount ($' + amount.toFixed(2) + ') is below Stripe\'s minimum of $0.50 for SGD.\n\nFor testing purposes, the system will use $0.50 as the minimum amount.');
+                                console.log('Amount too small, will use minimum $0.50');
+                            }
+
                             // 2. Create PaymentIntent on Backend
+                            const formData = new URLSearchParams();
+                            formData.append('amount', amount.toFixed(2));
+                            formData.append('currency', 'sgd');
+                            formData.append('duration', duration);
+                            <c:if test="${not empty service}">
+                                formData.append('serviceId', '${service.id}');
+                            </c:if>
+
+                            console.log('Sending payment request with amount:', amount.toFixed(2));
+
                             const response = await fetch('${pageContext.request.contextPath}/BookingServlet?action=createPaymentIntent', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ amount: amount.toFixed(2) })
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: formData
                             });
 
                             const data = await response.json();
@@ -664,8 +749,14 @@
                             if (result.error) {
                                 throw new Error(result.error.message);
                             } else if (result.paymentIntent.status === 'succeeded') {
-                                // 4. Finalize Booking
+                                // 4. Finalize Booking - Submit form to create booking
                                 document.getElementById('paymentIntentId').value = result.paymentIntent.id;
+
+                                // Set flag to allow form submission
+                                paymentProcessed = true;
+
+                                // Submit the form - this will POST to BookingServlet?action=save
+                                // which will redirect to bookingDetails.jsp
                                 form.submit();
                             }
                         } catch (err) {

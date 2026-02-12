@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.silvercare.model.Service;
 import com.silvercare.dao.ServiceDAO;
+import com.silvercare.service.AuditLogService;
 
 /**
  * REST Controller for Admin Service Management
@@ -22,6 +23,9 @@ public class AdminServicesRestController {
 
     @Autowired
     private ServiceDAO serviceDAO;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     /**
      * Get all services with category info
@@ -68,29 +72,53 @@ public class AdminServicesRestController {
      * POST /admin/services
      */
     @PostMapping
-    public ResponseEntity<?> createService(@RequestBody Service service) {
+    public ResponseEntity<?> createService(@RequestBody Service service,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
+            System.out.println("=== CREATE SERVICE REST ENDPOINT ===");
+            System.out.println("Received service: " + service);
+            System.out.println("Name: " + service.getName());
+            System.out.println("Category ID: " + service.getCategoryId());
+            System.out.println("Price: " + service.getPrice());
+
             if (service.getName() == null || service.getName().trim().isEmpty()) {
+                System.out.println("ERROR: Service name is required");
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Service name is required"));
             }
             if (service.getPrice() == null || service.getPrice().doubleValue() <= 0) {
+                System.out.println("ERROR: Valid price is required");
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Valid price is required"));
             }
 
+            System.out.println("Calling serviceDAO.addService()");
             boolean success = serviceDAO.addService(service);
+            System.out.println("addService result: " + success);
+
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "CREATE_SERVICE",
+                            "Service Name: " + service.getName() + ", Price: " + service.getPrice());
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Service created successfully"));
             } else {
+                System.out.println("ERROR: Failed to create service");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(Map.of("error", "Failed to create service"));
             }
         } catch (SQLException e) {
+            System.out.println("ERROR: SQLException - " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Database error: " + e.getMessage()));
+        } catch (Exception e) {
+            System.out.println("ERROR: Exception - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error: " + e.getMessage()));
         }
     }
 
@@ -99,7 +127,8 @@ public class AdminServicesRestController {
      * PUT /admin/services/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateService(@PathVariable("id") int serviceId, @RequestBody Service service) {
+    public ResponseEntity<?> updateService(@PathVariable("id") int serviceId, @RequestBody Service service,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             service.setId(serviceId);
 
@@ -114,6 +143,10 @@ public class AdminServicesRestController {
 
             boolean success = serviceDAO.updateService(service);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "UPDATE_SERVICE",
+                            "Service ID: " + serviceId + ", Name: " + service.getName());
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Service updated successfully"));
@@ -132,10 +165,14 @@ public class AdminServicesRestController {
      * DELETE /admin/services/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteService(@PathVariable("id") int serviceId) {
+    public ResponseEntity<?> deleteService(@PathVariable("id") int serviceId,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             boolean success = serviceDAO.deleteService(serviceId);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "DELETE_SERVICE", "Service ID: " + serviceId);
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Service deleted successfully"));
@@ -177,13 +214,10 @@ public class AdminServicesRestController {
             List<Service> services = serviceDAO.getAllServices();
             List<Map<String, Object>> categories = serviceDAO.getCategories();
 
-            int activeServices = (int) services.stream().filter(Service::isActive).count();
-
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "data", Map.of(
                             "totalServices", services.size(),
-                            "activeServices", activeServices,
                             "totalCategories", categories.size())));
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -196,7 +230,8 @@ public class AdminServicesRestController {
      * POST /admin/services/categories
      */
     @PostMapping("/categories")
-    public ResponseEntity<?> addCategory(@RequestBody Map<String, String> categoryData) {
+    public ResponseEntity<?> addCategory(@RequestBody Map<String, String> categoryData,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             String name = categoryData.get("name");
             String description = categoryData.get("description");
@@ -209,6 +244,9 @@ public class AdminServicesRestController {
 
             boolean success = serviceDAO.addCategory(name, description, icon);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "CREATE_CATEGORY", "Category Name: " + name);
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Category added successfully"));
@@ -228,7 +266,8 @@ public class AdminServicesRestController {
      */
     @PutMapping("/categories/{id}")
     public ResponseEntity<?> updateCategory(@PathVariable("id") int categoryId,
-            @RequestBody Map<String, String> categoryData) {
+            @RequestBody Map<String, String> categoryData,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             String name = categoryData.get("name");
             String description = categoryData.get("description");
@@ -241,6 +280,10 @@ public class AdminServicesRestController {
 
             boolean success = serviceDAO.updateCategory(categoryId, name, description, icon);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "UPDATE_CATEGORY",
+                            "Category ID: " + categoryId + ", Name: " + name);
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Category updated successfully"));
@@ -259,10 +302,14 @@ public class AdminServicesRestController {
      * DELETE /admin/services/categories/{id}
      */
     @DeleteMapping("/categories/{id}")
-    public ResponseEntity<?> deleteCategory(@PathVariable("id") int categoryId) {
+    public ResponseEntity<?> deleteCategory(@PathVariable("id") int categoryId,
+            @RequestHeader(value = "X-Admin-Id", required = false) Integer adminId) {
         try {
             boolean success = serviceDAO.deleteCategory(categoryId);
             if (success) {
+                if (adminId != null) {
+                    auditLogService.logAction(adminId, "DELETE_CATEGORY", "Category ID: " + categoryId);
+                }
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Category deleted successfully"));
