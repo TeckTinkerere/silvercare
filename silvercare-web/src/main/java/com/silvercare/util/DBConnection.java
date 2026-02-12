@@ -42,8 +42,19 @@ public class DBConnection {
     public static Connection getConnection() throws SQLException {
         // Preference: Environment Variables (e.g. for Render deployment)
         String url = System.getenv("DB_URL");
-        if (url == null)
+        if (url == null) {
             url = props.getProperty("jdbc.url");
+        }
+
+        // Sanitization: Render/Neon provide "postgresql://" or "postgres://" but JDBC
+        // requires "jdbc:postgresql://"
+        if (url != null && (url.startsWith("postgresql://") || url.startsWith("postgres://"))) {
+            if (url.startsWith("postgres://")) {
+                url = url.replaceFirst("postgres://", "jdbc:postgresql://");
+            } else {
+                url = "jdbc:" + url;
+            }
+        }
 
         String user = System.getenv("DB_USER");
         if (user == null)
@@ -52,6 +63,13 @@ public class DBConnection {
         String password = System.getenv("DB_PASSWORD");
         if (password == null)
             password = props.getProperty("jdbc.password");
+
+        // Explicitly load the driver for environments like Render/Docker
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("DBConnection: PostgreSQL JDBC Driver not found.");
+        }
 
         return DriverManager.getConnection(url, user, password);
     }
