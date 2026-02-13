@@ -43,7 +43,7 @@ Navigate to: Dashboard → silvercare-api → Environment
 
 **Auto-configured Variables (already set in render.yaml):**
 - `STRIPE_MOCK_ENABLED`: `false`
-- `CLIENT_URL`: `https://silvercare-web.onrender.com`
+- `CLIENT_URL`: `https://silvercare-web-uday.onrender.com`
 - `PORT`: `8081`
 
 #### For silvercare-web service:
@@ -60,7 +60,9 @@ Navigate to: Dashboard → silvercare-web → Environment
 | `STRIPE_PUBLISHABLE_KEY` | `pk_test_...` | From Stripe Dashboard → Developers → API Keys (same as API) |
 
 **Auto-configured Variables (already set in render.yaml):**
-- `API_BASE_URL`: `http://silvercare-api:8081/s-api`
+- `API_BASE_URL`: `https://silvercare-api-uday.onrender.com/s-api` (uses public URL for inter-service communication)
+
+**Important Note:** Render doesn't support internal service-to-service communication via service names. The web app must use the public API URL.
 
 #### Quick Setup Checklist:
 
@@ -126,8 +128,8 @@ STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 ## Service URLs
 
 After deployment, your services will be available at:
-- API: `https://silvercare-api.onrender.com/s-api`
-- Web: `https://silvercare-web.onrender.com`
+- API: `https://silvercare-api-uday.onrender.com/s-api`
+- Web: `https://silvercare-web-uday.onrender.com`
 
 ## Local Docker Testing
 
