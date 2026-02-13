@@ -8,7 +8,7 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: silvercare-api/Dockerfile
     dockerContext: ./silvercare-api
     envVars:
       - key: DB_URL
@@ -29,7 +29,7 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: silvercare-web/Dockerfile
     dockerContext: ./silvercare-web
     envVars:
       - key: DB_URL
