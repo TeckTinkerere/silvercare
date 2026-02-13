@@ -17,8 +17,9 @@ RUN mvn clean package -DskipTests
 # Stage 2: Deploy to Tomcat
 FROM tomcat:10.1-jdk21-temurin-jammy
 
-# Remove default Tomcat webapps
-RUN rm -rf /usr/local/tomcat/webapps/*
+# Remove default Tomcat webapps and disable shutdown port (8005) to prevent Render health check log spam
+RUN rm -rf /usr/local/tomcat/webapps/* && \
+    sed -i 's/port="8005" shutdown="SHUTDOWN"/port="-1" shutdown="SHUTDOWN"/g' /usr/local/tomcat/conf/server.xml
 
 # Copy WAR from builder stage
 COPY --from=builder /app/target/silvercare-web.war /usr/local/tomcat/webapps/ROOT.war
