@@ -1,5 +1,6 @@
 package com.silvercare.util;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,9 +26,9 @@ public class ServiceDBUtil {
 
     private static final String SELECT_ALL_CATEGORIES = "SELECT * FROM silvercare.service_category ORDER BY name";
 
-    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path) VALUES (?, ?, ?, ?, ?)";
+    private static final String INSERT_SERVICE = "INSERT INTO silvercare.service (category_id, name, description, price, image_path, spring_multiplier, summer_multiplier, autumn_multiplier, winter_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ? WHERE service_id = ?";
+    private static final String UPDATE_SERVICE = "UPDATE silvercare.service SET category_id = ?, name = ?, description = ?, price = ?, image_path = ?, spring_multiplier = ?, summer_multiplier = ?, autumn_multiplier = ?, winter_multiplier = ? WHERE service_id = ?";
 
     private static final String DELETE_SERVICE = "DELETE FROM silvercare.service WHERE service_id = ?";
 
@@ -117,6 +118,10 @@ public class ServiceDBUtil {
         System.out.println("Description: " + service.getDescription());
         System.out.println("Price: " + service.getPrice());
         System.out.println("Image Path: " + service.getImagePath());
+        System.out.println("Spring Multiplier: " + service.getSpringMultiplier());
+        System.out.println("Summer Multiplier: " + service.getSummerMultiplier());
+        System.out.println("Autumn Multiplier: " + service.getAutumnMultiplier());
+        System.out.println("Winter Multiplier: " + service.getWinterMultiplier());
 
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(INSERT_SERVICE)) {
@@ -125,6 +130,10 @@ public class ServiceDBUtil {
             pstmt.setString(3, service.getDescription());
             pstmt.setBigDecimal(4, service.getPrice());
             pstmt.setString(5, service.getImagePath());
+            pstmt.setBigDecimal(6, getMultiplierOrDefault(service.getSpringMultiplier()));
+            pstmt.setBigDecimal(7, getMultiplierOrDefault(service.getSummerMultiplier()));
+            pstmt.setBigDecimal(8, getMultiplierOrDefault(service.getAutumnMultiplier()));
+            pstmt.setBigDecimal(9, getMultiplierOrDefault(service.getWinterMultiplier()));
 
             System.out.println("Executing SQL: " + INSERT_SERVICE);
             int rowsAffected = pstmt.executeUpdate();
@@ -149,7 +158,11 @@ public class ServiceDBUtil {
             pstmt.setString(3, service.getDescription());
             pstmt.setBigDecimal(4, service.getPrice());
             pstmt.setString(5, service.getImagePath());
-            pstmt.setInt(6, service.getId());
+            pstmt.setBigDecimal(6, getMultiplierOrDefault(service.getSpringMultiplier()));
+            pstmt.setBigDecimal(7, getMultiplierOrDefault(service.getSummerMultiplier()));
+            pstmt.setBigDecimal(8, getMultiplierOrDefault(service.getAutumnMultiplier()));
+            pstmt.setBigDecimal(9, getMultiplierOrDefault(service.getWinterMultiplier()));
+            pstmt.setInt(10, service.getId());
             return pstmt.executeUpdate() > 0;
         }
     }
@@ -266,6 +279,20 @@ public class ServiceDBUtil {
         service.setDescription(rs.getString("description"));
         service.setPrice(rs.getBigDecimal("price"));
         service.setImagePath(rs.getString("image_path"));
+        
+        // Fetch seasonal multipliers with default value 1.0
+        service.setSpringMultiplier(getMultiplierOrDefault(rs.getBigDecimal("spring_multiplier")));
+        service.setSummerMultiplier(getMultiplierOrDefault(rs.getBigDecimal("summer_multiplier")));
+        service.setAutumnMultiplier(getMultiplierOrDefault(rs.getBigDecimal("autumn_multiplier")));
+        service.setWinterMultiplier(getMultiplierOrDefault(rs.getBigDecimal("winter_multiplier")));
+        
         return service;
+    }
+    
+    /**
+     * Helper method to get multiplier value or default to 1.0
+     */
+    private BigDecimal getMultiplierOrDefault(BigDecimal multiplier) {
+        return (multiplier != null) ? multiplier : BigDecimal.ONE;
     }
 }

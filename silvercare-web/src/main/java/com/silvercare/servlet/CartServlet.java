@@ -9,10 +9,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import com.silvercare.util.ApiClient;
+import com.silvercare.util.PriceCalculator;
+import com.silvercare.service.SeasonService;
+import com.silvercare.model.Season;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Servlet for Cart operations - Uses ApiClient to call REST APIs
+ * Servlet for Cart operations - Uses ApiClient to call REST APIs.
  */
 @WebServlet("/CartServlet")
 public class CartServlet extends HttpServlet {
@@ -152,10 +157,64 @@ public class CartServlet extends HttpServlet {
                     }
 
                     if (!exists) {
+                        // Get current season and calculate seasonal price
+                        Season currentSeason = SeasonService.getInstance().getCurrentSeason();
+
+                        // Parse service data to get multipliers
+                        BigDecimal basePrice = serviceData.has("price")
+                                ? new BigDecimal(serviceData.get("price").getAsString())
+                                : BigDecimal.ZERO;
+
+                        BigDecimal springMultiplier = serviceData.has("springMultiplier")
+                                && !serviceData.get("springMultiplier").isJsonNull()
+                                        ? new BigDecimal(serviceData.get("springMultiplier").getAsString())
+                                        : BigDecimal.ONE;
+                        BigDecimal summerMultiplier = serviceData.has("summerMultiplier")
+                                && !serviceData.get("summerMultiplier").isJsonNull()
+                                        ? new BigDecimal(serviceData.get("summerMultiplier").getAsString())
+                                        : BigDecimal.ONE;
+                        BigDecimal autumnMultiplier = serviceData.has("autumnMultiplier")
+                                && !serviceData.get("autumnMultiplier").isJsonNull()
+                                        ? new BigDecimal(serviceData.get("autumnMultiplier").getAsString())
+                                        : BigDecimal.ONE;
+                        BigDecimal winterMultiplier = serviceData.has("winterMultiplier")
+                                && !serviceData.get("winterMultiplier").isJsonNull()
+                                        ? new BigDecimal(serviceData.get("winterMultiplier").getAsString())
+                                        : BigDecimal.ONE;
+
+                        // Get multiplier for current season
+                        BigDecimal currentMultiplier = BigDecimal.ONE;
+                        switch (currentSeason) {
+                            case SPRING:
+                                currentMultiplier = springMultiplier;
+                                break;
+                            case SUMMER:
+                                currentMultiplier = summerMultiplier;
+                                break;
+                            case AUTUMN:
+                                currentMultiplier = autumnMultiplier;
+                                break;
+                            case WINTER:
+                                currentMultiplier = winterMultiplier;
+                                break;
+                            default:
+                                currentMultiplier = BigDecimal.ONE;
+                        }
+
+                        // Calculate seasonal price
+                        BigDecimal seasonalPrice = PriceCalculator.calculateSeasonalPrice(basePrice, currentMultiplier);
+
+                        System.out.println("CartServlet: Adding service " + serviceId + " with base price " + basePrice
+                                + ", season " + currentSeason + ", multiplier " + currentMultiplier
+                                + ", seasonal price " + seasonalPrice);
+
                         Map<String, Object> item = new HashMap<>();
                         item.put("id", serviceData.has("id") ? serviceData.get("id").getAsInt() : serviceId);
                         item.put("name", serviceData.has("name") ? serviceData.get("name").getAsString() : "");
-                        item.put("price", serviceData.has("price") ? serviceData.get("price").getAsDouble() : 0.0);
+                        item.put("basePrice", basePrice.doubleValue());
+                        item.put("price", seasonalPrice.doubleValue()); // Store seasonal price
+                        item.put("multiplier", currentMultiplier.doubleValue());
+                        item.put("season", currentSeason.name());
                         item.put("image",
                                 serviceData.has("imagePath") ? serviceData.get("imagePath").getAsString() : "");
                         item.put("description",

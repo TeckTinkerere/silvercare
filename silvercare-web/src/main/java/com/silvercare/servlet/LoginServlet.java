@@ -75,11 +75,13 @@ public class LoginServlet extends HttpServlet {
                     if ("admin".equalsIgnoreCase(role)) {
                         session.setAttribute("admin_id", userId);
                         session.setAttribute("admin_name", user.getFullName());
+                        session.setAttribute("admin_email", user.getEmail());
                         session.removeAttribute("customer_id");
                         response.sendRedirect(request.getContextPath() + "/admin/dashboard");
                     } else {
                         session.setAttribute("customer_id", userId);
                         session.setAttribute("customer_name", user.getFullName());
+                        session.setAttribute("customer_email", user.getEmail());
                         session.setAttribute("profile_picture", user.getProfilePicture());
                         session.removeAttribute("admin_id");
                         response.sendRedirect(request.getContextPath() + "/home");

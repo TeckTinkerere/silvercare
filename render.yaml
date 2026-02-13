@@ -21,6 +21,14 @@ services:
         sync: false
       - key: STRIPE_PUBLISHABLE_KEY
         sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_MOCK_ENABLED
+        value: false
+      - key: CLIENT_URL
+        value: https://silvercare-web.onrender.com
+      - key: PORT
+        value: 8081
     healthCheckPath: /s-api/status
 
   # Tomcat Web Application (Main Website - MVC)
@@ -41,5 +49,5 @@ services:
       - key: STRIPE_PUBLISHABLE_KEY
         sync: false
       - key: API_BASE_URL
-        sync: false # Set it to your silvercare-api Render URL (e.g. https://...onrender.com/s-api)
+        value: http://silvercare-api:8081/s-api
     healthCheckPath: /

@@ -199,10 +199,11 @@ public class UserServlet extends HttpServlet {
 
         User currentUser = (User) session.getAttribute("user");
 
-        String fullName = request.getParameter("fullName");
+        String fullName = request.getParameter("full_name");
         String email = request.getParameter("email");
         String phone = request.getParameter("phone");
         String address = request.getParameter("address");
+        String gender = request.getParameter("gender");
 
         // Build update request body
         Map<String, Object> updateData = new HashMap<>();
@@ -211,6 +212,7 @@ public class UserServlet extends HttpServlet {
         updateData.put("email", email != null ? email.trim() : currentUser.getEmail());
         updateData.put("phone", phone != null ? phone.trim() : currentUser.getPhone());
         updateData.put("address", address != null ? address.trim() : currentUser.getAddress());
+        updateData.put("gender", gender != null ? gender.trim() : currentUser.getGender());
 
         ApiClient.ApiResponse<String> apiResponse = ApiClient.put("/users/profile", updateData, String.class);
 
@@ -228,6 +230,7 @@ public class UserServlet extends HttpServlet {
                     currentUser.setEmail((String) updateData.get("email"));
                     currentUser.setPhone((String) updateData.get("phone"));
                     currentUser.setAddress((String) updateData.get("address"));
+                    currentUser.setGender((String) updateData.get("gender"));
                     session.setAttribute("user", currentUser);
                     session.setAttribute("username", currentUser.getFullName());
                 }

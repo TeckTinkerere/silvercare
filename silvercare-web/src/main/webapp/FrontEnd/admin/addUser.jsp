@@ -44,7 +44,11 @@
 
                 <div class="page-header mb-4">
                     <h1><i class="bi bi-person-plus text-primary me-2"></i>Add New User</h1>
-                    <p class="text-muted">Create a new customer or administrator account.</p>
+                    <p class="text-muted">Create a new customer account.</p>
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Note:</strong> This form creates customer accounts only. Administrator accounts must be created directly in the database.
+                    </div>
                 </div>
 
                 <div class="card shadow-sm border-0">
@@ -69,19 +73,12 @@
                                     <input type="password" class="form-control" id="password" name="password" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="role" class="form-label fw-bold">Role</label>
-                                    <select class="form-select" id="role" name="role" required>
-                                        <option value="Customer">Customer</option>
-                                        <option value="Admin">Administrator</option>
-                                    </select>
+                                    <label for="phone" class="form-label fw-bold">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone">
                                 </div>
                             </div>
 
                             <div class="row g-3">
-                                <div class="col-md-6 mb-3">
-                                    <label for="phone" class="form-label fw-bold">Phone Number</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone">
-                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="gender" class="form-label fw-bold">Gender</label>
                                     <select class="form-select" id="gender" name="gender">
@@ -91,11 +88,16 @@
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="address" class="form-label fw-bold">Address</label>
+                                    <input type="text" class="form-control" id="address" name="address">
+                                </div>
                             </div>
 
                             <div class="mb-4">
-                                <label for="address" class="form-label fw-bold">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+                                <label for="medicalInfo" class="form-label fw-bold">Medical Information (Optional)</label>
+                                <textarea class="form-control" id="medicalInfo" name="medicalInfo" rows="3" 
+                                    placeholder="Enter any relevant medical information"></textarea>
                             </div>
 
                             <div class="d-flex gap-2">

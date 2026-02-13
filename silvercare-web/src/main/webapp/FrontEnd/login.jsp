@@ -38,7 +38,7 @@
 
                     <form action="${pageContext.request.contextPath}/UserServlet?action=login" method="POST">
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email or Username</label>
+                            <label for="email" class="form-label">Email</label>
                             <input type="text" class="form-control" id="email" name="email" required autofocus>
                         </div>
                         <div class="mb-3">

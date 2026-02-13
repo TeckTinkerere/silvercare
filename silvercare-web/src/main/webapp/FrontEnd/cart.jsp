@@ -101,6 +101,22 @@
                                                                             <h6 class="mb-1 fw-bold">${item.name}</h6>
                                                                             <p class="text-muted small mb-0">
                                                                                 ${item.description}</p>
+                                                                            
+                                                                            <%-- Show seasonal pricing indicator --%>
+                                                                            <c:if test="${not empty item.multiplier and item.multiplier != 1.0}">
+                                                                                <c:choose>
+                                                                                    <c:when test="${item.multiplier > 1.0}">
+                                                                                        <span class="badge bg-warning text-dark mt-1">
+                                                                                            <i class="fas fa-arrow-up"></i> Peak Season
+                                                                                        </span>
+                                                                                    </c:when>
+                                                                                    <c:otherwise>
+                                                                                        <span class="badge bg-success mt-1">
+                                                                                            <i class="fas fa-arrow-down"></i> Seasonal Discount
+                                                                                        </span>
+                                                                                    </c:otherwise>
+                                                                                </c:choose>
+                                                                            </c:if>
                                                                         </td>
                                                                         <td>
                                                                             <div
@@ -114,13 +130,37 @@
                                                                         </td>
                                                                         <td class="text-end">
                                                                             <div class="price-summary">
-                                                                                <span class="fw-bold">$
-                                                                                    <fmt:formatNumber
-                                                                                        value="${lineTotal}"
-                                                                                        type="number"
-                                                                                        minFractionDigits="2"
-                                                                                        maxFractionDigits="2" />
-                                                                                </span>
+                                                                                <c:choose>
+                                                                                    <c:when test="${not empty item.multiplier and item.multiplier != 1.0}">
+                                                                                        <%-- Show seasonal price prominently --%>
+                                                                                        <span class="fw-bold text-primary">$
+                                                                                            <fmt:formatNumber
+                                                                                                value="${lineTotal}"
+                                                                                                type="number"
+                                                                                                minFractionDigits="2"
+                                                                                                maxFractionDigits="2" />
+                                                                                        </span>
+                                                                                        <br>
+                                                                                        <%-- Show base price with strikethrough --%>
+                                                                                        <small class="text-muted text-decoration-line-through">
+                                                                                            $<fmt:formatNumber
+                                                                                                value="${item.basePrice * itemQty}"
+                                                                                                type="number"
+                                                                                                minFractionDigits="2"
+                                                                                                maxFractionDigits="2" />
+                                                                                        </small>
+                                                                                    </c:when>
+                                                                                    <c:otherwise>
+                                                                                        <%-- Regular price --%>
+                                                                                        <span class="fw-bold">$
+                                                                                            <fmt:formatNumber
+                                                                                                value="${lineTotal}"
+                                                                                                type="number"
+                                                                                                minFractionDigits="2"
+                                                                                                maxFractionDigits="2" />
+                                                                                        </span>
+                                                                                    </c:otherwise>
+                                                                                </c:choose>
                                                                                 <br>
                                                                                 <a href="${pageContext.request.contextPath}/CartServlet?action=remove&id=${item.id}"
                                                                                     class="btn btn-link btn-sm text-danger p-0 mt-1">

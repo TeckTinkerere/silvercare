@@ -24,19 +24,98 @@ This guide covers deploying the SilverCare application to Render.com using Docke
 
 ### 2. Configure Environment Variables
 
-After the blueprint is created, you need to set the Stripe keys manually:
+After the blueprint is created, you need to manually set these environment variables in the Render dashboard:
 
-#### For silvercare-api:
-- `STRIPE_SECRET_KEY`: Your Stripe secret key (sk_test_...)
-- `STRIPE_PUBLISHABLE_KEY`: Your Stripe publishable key (pk_test_...)
-- `STRIPE_WEBHOOK_SECRET`: Your Stripe webhook secret (whsec_...)
+#### For silvercare-api service:
 
-#### For silvercare-web:
-- `STRIPE_PUBLISHABLE_KEY`: Your Stripe publishable key (pk_test_...)
+Navigate to: Dashboard → silvercare-api → Environment
+
+**Required Variables (must be set manually):**
+
+| Variable Name | Value | Where to Get It |
+|--------------|-------|-----------------|
+| `DB_URL` | `jdbc:postgresql://your-neon-host.neon.tech/neondb?sslmode=require&channelBinding=require` | Your Neon database connection string |
+| `DB_USER` | `your_db_username` | Your Neon database username |
+| `DB_PASSWORD` | `your_db_password` | Your Neon database password |
+| `STRIPE_SECRET_KEY` | `sk_test_...` | From Stripe Dashboard → Developers → API Keys |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_test_...` | From Stripe Dashboard → Developers → API Keys |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | From Stripe Dashboard → Developers → Webhooks (after creating webhook) |
+
+**Auto-configured Variables (already set in render.yaml):**
+- `STRIPE_MOCK_ENABLED`: `false`
+- `CLIENT_URL`: `https://silvercare-web.onrender.com`
+- `PORT`: `8081`
+
+#### For silvercare-web service:
+
+Navigate to: Dashboard → silvercare-web → Environment
+
+**Required Variables (must be set manually):**
+
+| Variable Name | Value | Where to Get It |
+|--------------|-------|-----------------|
+| `DB_URL` | `jdbc:postgresql://your-neon-host.neon.tech/neondb?sslmode=require&channelBinding=require` | Your Neon database connection string (same as API) |
+| `DB_USER` | `your_db_username` | Your Neon database username (same as API) |
+| `DB_PASSWORD` | `your_db_password` | Your Neon database password (same as API) |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_test_...` | From Stripe Dashboard → Developers → API Keys (same as API) |
+
+**Auto-configured Variables (already set in render.yaml):**
+- `API_BASE_URL`: `http://silvercare-api:8081/s-api`
+
+#### Quick Setup Checklist:
+
+1. ✅ Copy your Neon database credentials (DB_URL, DB_USER, DB_PASSWORD)
+2. ✅ Copy your Stripe test keys from Stripe Dashboard
+3. ✅ Set all required variables for silvercare-api
+4. ✅ Set all required variables for silvercare-web
+5. ✅ Click "Save Changes" after adding each variable
+6. ✅ Services will automatically redeploy with new variables
+
+**Important Notes:**
+- Use the EXACT values from your .env file for consistency
+- Test keys (sk_test_, pk_test_) are fine for demo/module purposes
+- Don't commit these values to GitHub - they're already in .gitignore
+- Variables marked as "sync: false" in render.yaml must be set manually
 
 ### 3. Database Setup
 
 The PostgreSQL database will be automatically created by Render. The connection details will be automatically injected into both services.
+
+---
+
+## Quick Reference: Environment Variables Copy-Paste Guide
+
+### silvercare-api Environment Variables
+
+```
+DB_URL=jdbc:postgresql://your-neon-host.neon.tech/neondb?sslmode=require&channelBinding=require
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+```
+
+### silvercare-web Environment Variables
+
+```
+DB_URL=jdbc:postgresql://your-neon-host.neon.tech/neondb?sslmode=require&channelBinding=require
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+```
+
+**How to add these in Render:**
+1. Go to your service (silvercare-api or silvercare-web)
+2. Click "Environment" in the left sidebar
+3. Click "Add Environment Variable"
+4. Copy the variable name, then paste YOUR ACTUAL VALUE from .env file
+5. Click "Save Changes"
+6. Repeat for each variable
+
+**Important:** Replace the placeholder values above with your actual credentials from your local .env file.
+
+---
 
 ### 4. Deploy
 

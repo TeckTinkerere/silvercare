@@ -93,6 +93,64 @@
                                 </div>
                             </div>
 
+                            <!-- Seasonal Multipliers Section -->
+                            <div class="mb-4">
+                                <h5 class="mb-3"><i class="bi bi-calendar-range text-primary me-2"></i>Seasonal Pricing Multipliers</h5>
+                                <p class="text-muted small">Set seasonal price adjustments (0.1 to 10.0). Default is 1.0 (no adjustment).</p>
+                                
+                                <c:if test="${not empty error}">
+                                    <div class="alert alert-danger border-0 shadow-sm">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>${error}
+                                    </div>
+                                </c:if>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-lg-3 mb-3">
+                                        <label for="spring_multiplier" class="form-label fw-bold">
+                                            <i class="bi bi-flower1 text-success me-1"></i>Spring Multiplier
+                                        </label>
+                                        <input type="number" step="0.01" min="0.1" max="10.0" 
+                                               class="form-control seasonal-multiplier" 
+                                               id="spring_multiplier" name="spring_multiplier"
+                                               placeholder="1.0" value="1.0">
+                                        <small class="text-muted">Range: 0.1 - 10.0</small>
+                                        <div class="invalid-feedback">Must be between 0.1 and 10.0</div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3 mb-3">
+                                        <label for="summer_multiplier" class="form-label fw-bold">
+                                            <i class="bi bi-sun text-warning me-1"></i>Summer Multiplier
+                                        </label>
+                                        <input type="number" step="0.01" min="0.1" max="10.0" 
+                                               class="form-control seasonal-multiplier" 
+                                               id="summer_multiplier" name="summer_multiplier"
+                                               placeholder="1.0" value="1.0">
+                                        <small class="text-muted">Range: 0.1 - 10.0</small>
+                                        <div class="invalid-feedback">Must be between 0.1 and 10.0</div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3 mb-3">
+                                        <label for="autumn_multiplier" class="form-label fw-bold">
+                                            <i class="bi bi-tree text-danger me-1"></i>Autumn Multiplier
+                                        </label>
+                                        <input type="number" step="0.01" min="0.1" max="10.0" 
+                                               class="form-control seasonal-multiplier" 
+                                               id="autumn_multiplier" name="autumn_multiplier"
+                                               placeholder="1.0" value="1.0">
+                                        <small class="text-muted">Range: 0.1 - 10.0</small>
+                                        <div class="invalid-feedback">Must be between 0.1 and 10.0</div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3 mb-3">
+                                        <label for="winter_multiplier" class="form-label fw-bold">
+                                            <i class="bi bi-snow text-info me-1"></i>Winter Multiplier
+                                        </label>
+                                        <input type="number" step="0.01" min="0.1" max="10.0" 
+                                               class="form-control seasonal-multiplier" 
+                                               id="winter_multiplier" name="winter_multiplier"
+                                               placeholder="1.0" value="1.0">
+                                        <small class="text-muted">Range: 0.1 - 10.0</small>
+                                        <div class="invalid-feedback">Must be between 0.1 and 10.0</div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary px-4 shadow-sm">
@@ -123,6 +181,43 @@
                     if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
                     if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
                     if (overlay) overlay.addEventListener('click', toggleSidebar);
+
+                    // Client-side validation for seasonal multipliers
+                    const form = document.querySelector('form');
+                    const multiplierInputs = document.querySelectorAll('.seasonal-multiplier');
+
+                    form.addEventListener('submit', function(e) {
+                        let isValid = true;
+                        
+                        multiplierInputs.forEach(function(input) {
+                            const value = parseFloat(input.value);
+                            
+                            if (isNaN(value) || value < 0.1 || value > 10.0) {
+                                isValid = false;
+                                input.classList.add('is-invalid');
+                            } else {
+                                input.classList.remove('is-invalid');
+                            }
+                        });
+
+                        if (!isValid) {
+                            e.preventDefault();
+                            alert('Please ensure all seasonal multipliers are between 0.1 and 10.0');
+                        }
+                    });
+
+                    // Real-time validation feedback
+                    multiplierInputs.forEach(function(input) {
+                        input.addEventListener('input', function() {
+                            const value = parseFloat(this.value);
+                            
+                            if (this.value && (isNaN(value) || value < 0.1 || value > 10.0)) {
+                                this.classList.add('is-invalid');
+                            } else {
+                                this.classList.remove('is-invalid');
+                            }
+                        });
+                    });
                 });
             </script>
         </body>

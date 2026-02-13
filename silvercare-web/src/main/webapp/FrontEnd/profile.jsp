@@ -35,7 +35,13 @@
                         </div>
                         <div class="mb-4">
                             <label>Gender</label>
-                            <input type="text" name="gender" value="${user.gender}" class="form-control">
+                            <select name="gender" class="form-control">
+                                <option value="">Select Gender</option>
+                                <option value="Male" ${user.gender == 'Male' ? 'selected' : ''}>Male</option>
+                                <option value="Female" ${user.gender == 'Female' ? 'selected' : ''}>Female</option>
+                                <option value="Other" ${user.gender == 'Other' ? 'selected' : ''}>Other</option>
+                                <option value="Prefer not to say" ${user.gender == 'Prefer not to say' ? 'selected' : ''}>Prefer not to say</option>
+                            </select>
                         </div>
                         <div class="mb-4">
                             <label>Address</label>

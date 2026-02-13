@@ -193,6 +193,24 @@ public class AdminDashboardServlet extends HttpServlet {
             e.printStackTrace(); // Non-critical, don't block main flow
         }
     }
+    
+    // ========== Helper: Parse seasonal multiplier with validation ==========
+    private java.math.BigDecimal parseMultiplier(String multiplierStr) {
+        try {
+            if (multiplierStr == null || multiplierStr.trim().isEmpty()) {
+                return java.math.BigDecimal.ONE;
+            }
+            java.math.BigDecimal value = new java.math.BigDecimal(multiplierStr);
+            // Validate range 0.1 to 10.0
+            if (value.compareTo(new java.math.BigDecimal("0.1")) < 0 || 
+                value.compareTo(new java.math.BigDecimal("10.0")) > 0) {
+                return java.math.BigDecimal.ONE;
+            }
+            return value;
+        } catch (Exception e) {
+            return java.math.BigDecimal.ONE;
+        }
+    }
 
     // ========== Category Operations ==========
 
@@ -302,6 +320,17 @@ public class AdminDashboardServlet extends HttpServlet {
                 }
             }
 
+            // Parse seasonal multipliers with default value 1.0
+            String springMultStr = request.getParameter("spring_multiplier");
+            String summerMultStr = request.getParameter("summer_multiplier");
+            String autumnMultStr = request.getParameter("autumn_multiplier");
+            String winterMultStr = request.getParameter("winter_multiplier");
+            
+            java.math.BigDecimal springMult = parseMultiplier(springMultStr);
+            java.math.BigDecimal summerMult = parseMultiplier(summerMultStr);
+            java.math.BigDecimal autumnMult = parseMultiplier(autumnMultStr);
+            java.math.BigDecimal winterMult = parseMultiplier(winterMultStr);
+
             Map<String, Object> serviceData = new HashMap<>();
             serviceData.put("name", name);
             serviceData.put("description", description);
@@ -313,6 +342,10 @@ public class AdminDashboardServlet extends HttpServlet {
                 serviceData.put("price", 0.0);
             }
             serviceData.put("categoryId", categoryId);
+            serviceData.put("springMultiplier", springMult);
+            serviceData.put("summerMultiplier", summerMult);
+            serviceData.put("autumnMultiplier", autumnMult);
+            serviceData.put("winterMultiplier", winterMult);
 
             if (idStr != null && !idStr.isEmpty()) {
                 int serviceId = Integer.parseInt(idStr);
@@ -751,6 +784,8 @@ public class AdminDashboardServlet extends HttpServlet {
             String email = request.getParameter("email");
             String phone = request.getParameter("phone");
             String address = request.getParameter("address");
+            String gender = request.getParameter("gender");
+            String medicalInfo = request.getParameter("medicalInfo");
 
             Integer adminId = (Integer) request.getSession().getAttribute("admin_id");
 
@@ -762,6 +797,8 @@ public class AdminDashboardServlet extends HttpServlet {
                 updateData.put("email", email);
                 updateData.put("phone", phone);
                 updateData.put("address", address);
+                updateData.put("gender", gender);
+                updateData.put("medicalInfo", medicalInfo);
 
                 ApiClient.put("/users/profile", updateData, String.class, adminId);
             } else {
@@ -771,6 +808,10 @@ public class AdminDashboardServlet extends HttpServlet {
                 regData.put("email", email);
                 regData.put("phone", phone);
                 regData.put("address", address);
+                regData.put("gender", gender);
+                if (medicalInfo != null && !medicalInfo.trim().isEmpty()) {
+                    regData.put("medicalInfo", medicalInfo);
+                }
                 String password = request.getParameter("password");
                 regData.put("password", password);
 
@@ -838,47 +879,64 @@ public class AdminDashboardServlet extends HttpServlet {
 
     private void handleGetUserDetailsJson(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String id = request.getParameter("id");
-        if (id != null) {
-            try {
-                // Fetch user data
-                ApiClient.ApiResponse<String> userResponse = ApiClient.get("/users/" + id, String.class);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        
+        if (id == null || id.trim().isEmpty()) {
+            response.setStatus(400);
+            JsonObject errorResponse = new JsonObject();
+            errorResponse.addProperty("error", "User ID is required");
+            response.getWriter().write(gson.toJson(errorResponse));
+            return;
+        }
+        
+        try {
+            // Fetch user data
+            ApiClient.ApiResponse<String> userResponse = ApiClient.get("/users/" + id, String.class);
+            
+            System.out.println("User API Response Status: " + userResponse.getStatusCode());
+            System.out.println("User API Response Data: " + userResponse.getData());
+            System.out.println("User API Response Error: " + userResponse.getError());
 
-                if (userResponse.isSuccess() && userResponse.getData() != null) {
-                    // Parse user data
-                    JsonObject userData = gson.fromJson(userResponse.getData(), JsonObject.class);
+            if (userResponse.isSuccess() && userResponse.getData() != null) {
+                // Parse user data
+                JsonObject userData = gson.fromJson(userResponse.getData(), JsonObject.class);
 
-                    // Fetch bookings for this user
-                    JsonArray bookingsArray = new JsonArray();
-                    try {
-                        ApiClient.ApiResponse<String> bookingsResponse = ApiClient.get(
-                                "/bookings?customerId=" + id, String.class);
-                        if (bookingsResponse.isSuccess() && bookingsResponse.getData() != null) {
-                            JsonObject bookingsJson = gson.fromJson(bookingsResponse.getData(), JsonObject.class);
-                            if (bookingsJson.has("data")) {
-                                bookingsArray = bookingsJson.getAsJsonArray("data");
-                            }
+                // Fetch bookings for this user
+                JsonArray bookingsArray = new JsonArray();
+                try {
+                    ApiClient.ApiResponse<String> bookingsResponse = ApiClient.get(
+                            "/bookings?customerId=" + id, String.class);
+                    if (bookingsResponse.isSuccess() && bookingsResponse.getData() != null) {
+                        JsonObject bookingsJson = gson.fromJson(bookingsResponse.getData(), JsonObject.class);
+                        if (bookingsJson.has("data")) {
+                            bookingsArray = bookingsJson.getAsJsonArray("data");
                         }
-                    } catch (Exception e) {
-                        // Bookings fetch failed — non-critical, continue with empty bookings
-                        e.printStackTrace();
                     }
-
-                    // Build response in the format the modal JS expects: { user: {...}, bookings:
-                    // [...] }
-                    JsonObject result = new JsonObject();
-                    result.add("user", userData);
-                    result.add("bookings", bookingsArray);
-                    response.getWriter().write(gson.toJson(result));
-                } else {
-                    response.setStatus(404);
-                    response.getWriter().write("{\"error\":\"User not found\"}");
+                } catch (Exception e) {
+                    // Bookings fetch failed — non-critical, continue with empty bookings
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                response.setStatus(500);
-                response.getWriter().write("{\"error\":\"" + e.getMessage() + "\"}");
+
+                // Build response in the format the modal JS expects: { user: {...}, bookings:
+                // [...] }
+                JsonObject result = new JsonObject();
+                result.add("user", userData);
+                result.add("bookings", bookingsArray);
+                response.getWriter().write(gson.toJson(result));
+            } else {
+                response.setStatus(userResponse.getStatusCode());
+                JsonObject errorResponse = new JsonObject();
+                String errorMsg = userResponse.getError() != null ? userResponse.getError() : "User not found";
+                errorResponse.addProperty("error", errorMsg);
+                response.getWriter().write(gson.toJson(errorResponse));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(500);
+            JsonObject errorResponse = new JsonObject();
+            errorResponse.addProperty("error", "Server error: " + e.getMessage());
+            response.getWriter().write(gson.toJson(errorResponse));
         }
     }
 

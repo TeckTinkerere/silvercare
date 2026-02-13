@@ -29,8 +29,8 @@
 
                         <form action="${pageContext.request.contextPath}/UserServlet?action=register" method="POST">
                             <div class="mb-3">
-                                <label for="full_name" class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" name="fullName" required
                                     autofocus>
                             </div>
                             <div class="mb-3">
@@ -50,9 +50,9 @@
                                 <input type="password" class="form-control" id="password" name="password" required>
                             </div>
                             <div class="mb-3">
-                                <label for="confirm_password" class="form-label">Confirm Password</label>
-                                <input type="password" class="form-control" id="confirm_password"
-                                    name="confirm_password" required>
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirmPassword"
+                                    name="confirmPassword" required>
                             </div>
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-lg">Create Account</button>

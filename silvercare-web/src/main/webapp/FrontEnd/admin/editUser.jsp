@@ -74,20 +74,28 @@
                                                 value="${userData.phone}">
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label for="role" class="form-label fw-bold">Role</label>
-                                            <select class="form-select" id="role" name="role" required>
-                                                <option value="Customer" ${userData.role=='Customer' ? 'selected' : ''
-                                                    }>Customer</option>
-                                                <option value="Admin" ${userData.role=='Admin' ? 'selected' : '' }>
-                                                    Administrator</option>
+                                            <label for="gender" class="form-label fw-bold">Gender</label>
+                                            <select class="form-select" id="gender" name="gender">
+                                                <option value="">Select Gender</option>
+                                                <option value="Male" ${userData.gender=='Male' ? 'selected' : '' }>Male</option>
+                                                <option value="Female" ${userData.gender=='Female' ? 'selected' : '' }>Female</option>
+                                                <option value="Other" ${userData.gender=='Other' ? 'selected' : '' }>Other</option>
                                             </select>
                                         </div>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label for="address" class="form-label fw-bold">Address</label>
-                                        <textarea class="form-control" id="address" name="address"
-                                            rows="2">${userData.address}</textarea>
+                                    <div class="row g-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="role" class="form-label fw-bold">Role</label>
+                                            <input type="text" class="form-control" id="role" name="role"
+                                                value="${userData.role}" readonly disabled>
+                                            <small class="text-muted">Role cannot be changed after user creation</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="address" class="form-label fw-bold">Address</label>
+                                            <input type="text" class="form-control" id="address" name="address"
+                                                value="${userData.address}">
+                                        </div>
                                     </div>
 
                                     <div class="mb-4">

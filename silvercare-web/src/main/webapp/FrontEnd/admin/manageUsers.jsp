@@ -323,14 +323,14 @@
                     document.addEventListener('click', function (e) {
                         const viewBtn = e.target.closest('.btn-view-user');
                         if (viewBtn) {
-                            const id = viewBtn.getAttribute('data-id');
+                            const id = parseInt(viewBtn.getAttribute('data-id'));
                             loadUserDetails(id);
                             detailsModal.show();
                         }
 
                         const deleteBtn = e.target.closest('.btn-delete-user');
                         if (deleteBtn) {
-                            const id = deleteBtn.getAttribute('data-id');
+                            const id = parseInt(deleteBtn.getAttribute('data-id'));
                             const name = deleteBtn.getAttribute('data-name');
                             document.getElementById('deleteUserId').value = id;
                             document.getElementById('deleteUserName').textContent = name;
@@ -339,7 +339,7 @@
 
                         const resetBtn = e.target.closest('.btn-reset-password');
                         if (resetBtn) {
-                            const id = resetBtn.getAttribute('data-id');
+                            const id = parseInt(resetBtn.getAttribute('data-id'));
                             const name = resetBtn.getAttribute('data-name');
                             const role = resetBtn.getAttribute('data-role');
                             document.getElementById('resetPasswordUserId').value = id;
@@ -362,81 +362,83 @@
                         }
                     });
                     function loadUserDetails(id) {
+                        console.log('Loading user details for ID:', id);
                         const content = document.getElementById('userDetailsContent');
-                        content.innerHTML = `
-                            <div class="text-center py-5">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p class="mt-2 text-muted">Retrieving records...</p>
-                            </div>
-                        `;
+                        content.innerHTML = 
+                            '<div class="text-center py-5">' +
+                                '<div class="spinner-border text-primary" role="status">' +
+                                    '<span class="visually-hidden">Loading...</span>' +
+                                '</div>' +
+                                '<p class="mt-2 text-muted">Retrieving records...</p>' +
+                            '</div>';
 
-                        fetch("${pageContext.request.contextPath}/admin/user-details-json?id=\${id}")
-                            .then(response => response.json())
+                        const url = "${pageContext.request.contextPath}/admin/user-details-json?id=" + id;
+                        console.log('Fetching from URL:', url);
+                        
+                        fetch(url)
+                            .then(response => {
+                                console.log('Response status:', response.status);
+                                return response.json();
+                            })
                             .then(data => {
+                                console.log('Response data:', data);
                                 if (data.error) {
-                                    content.innerHTML = `<div class="alert alert-danger m-3">${data.error}</div>`;
+                                    content.innerHTML = '<div class="alert alert-danger m-3">' + data.error + '</div>';
                                     return;
                                 }
 
                                 const user = data.user;
                                 const bookings = data.bookings || [];
 
-                                let bookingsHtml = bookings.length > 0 ? `
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover mb-0">
-                                            <thead class="bg-light">
-                                                <tr>
-                                                    <th>ID</th>
-                                                    <th>Date</th>
-                                                    <th>Amount</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                \${bookings.map(b => `
-                                    < tr >
-                                                        <td>#\${b.id}</td>
-                                                        <td>\${new Date(b.bookingDate).toLocaleDateString()}</td>
-                                                        <td>$\${b.totalAmount.toFixed(2)}</td>
-                                                        <td><span class="badge bg-\${b.status === 'Confirmed' ? 'success' : 'warning'}">\${b.status}</span></td>
-                                                    </tr >
-                                    `).join('')}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ` : '<p class="text-muted fst-italic">No booking history found.</p>';
+                                let bookingsHtml = '';
+                                if (bookings.length > 0) {
+                                    bookingsHtml = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">' +
+                                        '<thead class="bg-light"><tr><th>ID</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+                                    bookings.forEach(b => {
+                                        const statusClass = b.status === 'Confirmed' ? 'success' : 'warning';
+                                        bookingsHtml += '<tr>' +
+                                            '<td>#' + b.id + '</td>' +
+                                            '<td>' + new Date(b.bookingDate).toLocaleDateString() + '</td>' +
+                                            '<td>$' + b.totalAmount.toFixed(2) + '</td>' +
+                                            '<td><span class="badge bg-' + statusClass + '">' + b.status + '</span></td>' +
+                                            '</tr>';
+                                    });
+                                    bookingsHtml += '</tbody></table></div>';
+                                } else {
+                                    bookingsHtml = '<p class="text-muted fst-italic">No booking history found.</p>';
+                                }
 
-                                content.innerHTML = `
-                                    <div class="p-4">
-                                        <div class="row">
-                                            <div class="col-md-4 text-center border-end">
-                                                <img src="${pageContext.request.contextPath}/\${user.profilePicture || 'https://ui-avatars.com/api/?name=' + user.fullName + '&background=random'}" 
-                                                     class="rounded-circle mb-3 shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
-                                                <h4 class="mb-1">\${user.fullName}</h4>
-                                                <span class="badge bg-secondary mb-3">\${user.role}</span>
-                                                <div class="text-start small">
-                                                    <p class="mb-1"><strong>Email:</strong> \${user.email}</p>
-                                                    <p class="mb-1"><strong>Phone:</strong> \${user.phone || '-'}</p>
-                                                    <p class="mb-1"><strong>Gender:</strong> \${user.gender || '-'}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-8">
-                                                <h6 class="fw-bold mb-3 border-bottom pb-2">Medical History & Notes</h6>
-                                                <div class="bg-light p-3 rounded mb-4" style="min-height: 100px;">
-                                                    \${user.medicalInfo ? user.medicalInfo.replace(/\n/g, '<br>') : 'No medical information recorded.'}
-                                                </div>
-
-                                                <h6 class="fw-bold mb-3 border-bottom pb-2">Booking History</h6>
-                                                \${bookingsHtml}
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
+                                const medicalInfo = user.medicalInfo ? user.medicalInfo.replace(/\n/g, '<br>') : 'No medical information recorded.';
+                                const profilePic = user.profilePicture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.fullName) + '&background=random';
+                                
+                                content.innerHTML = 
+                                    '<div class="p-4">' +
+                                        '<div class="row">' +
+                                            '<div class="col-md-4 text-center border-end">' +
+                                                '<img src="${pageContext.request.contextPath}/' + profilePic + '" ' +
+                                                     'class="rounded-circle mb-3 shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">' +
+                                                '<h4 class="mb-1">' + user.fullName + '</h4>' +
+                                                '<span class="badge bg-secondary mb-3">' + user.role + '</span>' +
+                                                '<div class="text-start small">' +
+                                                    '<p class="mb-1"><strong>Email:</strong> ' + user.email + '</p>' +
+                                                    '<p class="mb-1"><strong>Phone:</strong> ' + (user.phone || '-') + '</p>' +
+                                                    '<p class="mb-1"><strong>Gender:</strong> ' + (user.gender || '-') + '</p>' +
+                                                '</div>' +
+                                            '</div>' +
+                                            '<div class="col-md-8">' +
+                                                '<h6 class="fw-bold mb-3 border-bottom pb-2">Medical History & Notes</h6>' +
+                                                '<div class="bg-light p-3 rounded mb-4" style="min-height: 100px;">' +
+                                                    medicalInfo +
+                                                '</div>' +
+                                                '<h6 class="fw-bold mb-3 border-bottom pb-2">Booking History</h6>' +
+                                                bookingsHtml +
+                                            '</div>' +
+                                        '</div>' +
+                                    '</div>';
                             })
                             .catch(err => {
-                                content.innerHTML = `<div class="alert alert-danger m-3">Error: ${err.message}</div>`;
+                                console.error('Fetch error:', err);
+                                content.innerHTML = '<div class="alert alert-danger m-3">Error: ' + err.message + '</div>';
                             });
                     }
                 </script>

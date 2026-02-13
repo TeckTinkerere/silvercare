@@ -40,11 +40,37 @@
                                                     <p class="card-text text-muted small mb-3">${service.description}
                                                     </p>
                                                     <div class="d-flex justify-content-between align-items-center mt-3">
-                                                        <span class="fs-5 fw-bold text-primary">
-                                                            $
-                                                            <fmt:formatNumber value="${service.price}"
-                                                                minFractionDigits="2" maxFractionDigits="2" />
-                                                        </span>
+                                                        <div>
+                                                            <c:choose>
+                                                                <c:when test="${service.seasonalPrice != null && service.seasonalPrice != service.price}">
+                                                                    <%-- Show seasonal price with base price strikethrough --%>
+                                                                    <div class="d-flex align-items-center gap-2">
+                                                                        <span class="fs-5 fw-bold text-primary">
+                                                                            $<fmt:formatNumber value="${service.seasonalPrice}" minFractionDigits="2" maxFractionDigits="2" />
+                                                                        </span>
+                                                                        <c:if test="${service.seasonalPrice > service.price}">
+                                                                            <span class="badge bg-warning text-dark">
+                                                                                <i class="fas fa-arrow-up"></i> Peak Season
+                                                                            </span>
+                                                                        </c:if>
+                                                                        <c:if test="${service.seasonalPrice < service.price}">
+                                                                            <span class="badge bg-success">
+                                                                                <i class="fas fa-tag"></i> Seasonal Discount
+                                                                            </span>
+                                                                        </c:if>
+                                                                    </div>
+                                                                    <small class="text-muted text-decoration-line-through">
+                                                                        Regular: $<fmt:formatNumber value="${service.price}" minFractionDigits="2" maxFractionDigits="2" />
+                                                                    </small>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    <%-- Show regular price only --%>
+                                                                    <span class="fs-5 fw-bold text-primary">
+                                                                        $<fmt:formatNumber value="${service.price}" minFractionDigits="2" maxFractionDigits="2" />
+                                                                    </span>
+                                                                </c:otherwise>
+                                                            </c:choose>
+                                                        </div>
                                                         <div class="d-flex gap-2">
                                                             <a href="${pageContext.request.contextPath}/ServiceServlet?action=details&id=${service.id}"
                                                                 class="btn btn-outline-primary btn-sm">View Details</a>

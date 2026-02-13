@@ -66,12 +66,11 @@
                                                                         <td>
                                                                             <c:if
                                                                                 test="${not empty booking.bookingDate}">
-                                                                                <fmt:parseDate 
+                                                                                <fmt:parseDate
                                                                                     value="${booking.bookingDate}"
-                                                                                    pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX" 
+                                                                                    pattern="yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
                                                                                     var="parsedDate" />
-                                                                                <fmt:formatDate
-                                                                                    value="${parsedDate}"
+                                                                                <fmt:formatDate value="${parsedDate}"
                                                                                     pattern="MMM dd, yyyy HH:mm" />
                                                                             </c:if>
                                                                             <c:if test="${empty booking.bookingDate}">
@@ -92,12 +91,37 @@
                                                                             </c:if>
                                                                         </td>
                                                                         <td>
-                                                                            <span
-                                                                                class="badge ${booking.status == 'Pending' ? 'bg-warning' : (booking.status == 'Confirmed' ? 'bg-success' : 'bg-secondary')}">
-                                                                                ${not empty booking.status ?
-                                                                                booking.status
-                                                                                : 'Pending'}
-                                                                            </span>
+                                                                            <c:choose>
+                                                                                <c:when
+                                                                                    test="${booking.status == 'Confirmed'}">
+                                                                                    <span
+                                                                                        class="badge bg-primary">Confirmed</span>
+                                                                                </c:when>
+                                                                                <c:when
+                                                                                    test="${booking.status == 'Pending'}">
+                                                                                    <span
+                                                                                        class="badge bg-warning text-dark">Pending</span>
+                                                                                </c:when>
+                                                                                <c:when
+                                                                                    test="${booking.status == 'Cancelled'}">
+                                                                                    <span
+                                                                                        class="badge bg-danger">Cancelled</span>
+                                                                                </c:when>
+                                                                                <c:when
+                                                                                    test="${booking.status == 'Completed'}">
+                                                                                    <span
+                                                                                        class="badge bg-success">Completed</span>
+                                                                                </c:when>
+                                                                                <c:when
+                                                                                    test="${booking.status == 'Refunded'}">
+                                                                                    <span
+                                                                                        class="badge bg-info text-dark">Refunded</span>
+                                                                                </c:when>
+                                                                                <c:otherwise>
+                                                                                    <span
+                                                                                        class="badge bg-secondary">${booking.status}</span>
+                                                                                </c:otherwise>
+                                                                            </c:choose>
                                                                         </td>
                                                                         <td>
                                                                             <a href="${pageContext.request.contextPath}/BookingServlet?action=details&id=${booking.id}"

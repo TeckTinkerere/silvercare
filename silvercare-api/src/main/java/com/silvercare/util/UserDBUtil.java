@@ -24,13 +24,13 @@ public class UserDBUtil {
             +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
 
-    private static final String UPDATE_CUSTOMER_PROFILE = "UPDATE silvercare.customer SET full_name = ?, phone = ?, address = ?, gender = ? WHERE customer_id = ?";
+    private static final String UPDATE_CUSTOMER_PROFILE = "UPDATE silvercare.customer SET full_name = ?, email = ?, phone = ?, address = ?, gender = ? WHERE customer_id = ?";
 
-    private static final String UPDATE_CUSTOMER_PROFILE_WITH_MEDICAL = "UPDATE silvercare.customer SET full_name = ?, phone = ?, address = ?, gender = ?, medical_info = ? WHERE customer_id = ?";
+    private static final String UPDATE_CUSTOMER_PROFILE_WITH_MEDICAL = "UPDATE silvercare.customer SET full_name = ?, email = ?, phone = ?, address = ?, gender = ?, medical_info = ? WHERE customer_id = ?";
 
-    private static final String UPDATE_CUSTOMER_PROFILE_WITH_PICTURE = "UPDATE silvercare.customer SET full_name = ?, phone = ?, address = ?, gender = ?, profile_picture = ? WHERE customer_id = ?";
+    private static final String UPDATE_CUSTOMER_PROFILE_WITH_PICTURE = "UPDATE silvercare.customer SET full_name = ?, email = ?, phone = ?, address = ?, gender = ?, profile_picture = ? WHERE customer_id = ?";
 
-    private static final String UPDATE_CUSTOMER_PROFILE_FULL = "UPDATE silvercare.customer SET full_name = ?, phone = ?, address = ?, gender = ?, medical_info = ?, profile_picture = ? WHERE customer_id = ?";
+    private static final String UPDATE_CUSTOMER_PROFILE_FULL = "UPDATE silvercare.customer SET full_name = ?, email = ?, phone = ?, address = ?, gender = ?, medical_info = ?, profile_picture = ? WHERE customer_id = ?";
 
     private static final String SELECT_ALL_CUSTOMERS = "SELECT * FROM silvercare.customer";
 
@@ -180,6 +180,7 @@ public class UserDBUtil {
     private void setUpdateParameters(PreparedStatement pstmt, User user) throws SQLException {
         int paramIndex = 1;
         pstmt.setString(paramIndex++, user.getFullName());
+        pstmt.setString(paramIndex++, user.getEmail());
         pstmt.setString(paramIndex++, user.getPhone());
         pstmt.setString(paramIndex++, user.getAddress());
         pstmt.setString(paramIndex++, user.getGender());

@@ -42,7 +42,7 @@
                                 </c:if>
                                 <c:set var="loggedIn" value="${not empty sessionScope.customer_id}" />
                                 <c:set var="userName" value="${loggedIn ? sessionScope.customer_name : ''}" />
-                                <c:set var="userEmail" value="${loggedIn ? sessionScope.customer_email : ''}" />
+                                <c:set var="userEmail" value="${loggedIn ? (not empty sessionScope.customer_email ? sessionScope.customer_email : sessionScope.user.email) : ''}" />
 
                                 <form action="${pageContext.request.contextPath}/contact" method="POST">
 
@@ -52,16 +52,14 @@
                                                 <i class="fas fa-user text-primary me-2"></i>Full Name *
                                             </label>
                                             <input type="text" class="form-control form-control-lg" id="name"
-                                                name="name" value="${userName}" placeholder="John Doe" ${loggedIn
-                                                ? "readonly" : "" } required>
+                                                name="name" value="${userName}" placeholder="John Doe" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="email" class="form-label fw-semibold">
                                                 <i class="fas fa-envelope text-primary me-2"></i>Email Address *
                                             </label>
                                             <input type="email" class="form-control form-control-lg" id="email"
-                                                name="email" value="${userEmail}" placeholder="john@example.com"
-                                                ${loggedIn ? "readonly" : "" } required>
+                                                name="email" value="${userEmail}" placeholder="john@example.com" required>
                                         </div>
                                         <div class="col-12">
                                             <label for="phone" class="form-label fw-semibold">

@@ -101,13 +101,29 @@
                                                         pattern="#,##0.00" />
                                                 </td>
                                                 <td>
-                                                    <span
-                                                        class="badge rounded-pill 
-                            ${booking.status == 'Pending' ? 'bg-warning text-dark' : 
-                                (booking.status == 'Confirmed' ? 'bg-info text-white' :
-                                (booking.status == 'Completed' ? 'bg-success text-white' : 'bg-secondary text-white'))}">
-                                                        ${booking.status}
-                                                    </span>
+                                                    <c:choose>
+                                                        <c:when test="${booking.status == 'Confirmed'}">
+                                                            <span class="badge rounded-pill bg-primary">Confirmed</span>
+                                                        </c:when>
+                                                        <c:when test="${booking.status == 'Pending'}">
+                                                            <span
+                                                                class="badge rounded-pill bg-warning text-dark">Pending</span>
+                                                        </c:when>
+                                                        <c:when test="${booking.status == 'Cancelled'}">
+                                                            <span class="badge rounded-pill bg-danger">Cancelled</span>
+                                                        </c:when>
+                                                        <c:when test="${booking.status == 'Completed'}">
+                                                            <span class="badge rounded-pill bg-success">Completed</span>
+                                                        </c:when>
+                                                        <c:when test="${booking.status == 'Refunded'}">
+                                                            <span
+                                                                class="badge rounded-pill bg-info text-dark">Refunded</span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span
+                                                                class="badge rounded-pill bg-secondary">${booking.status}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </td>
                                                 <td class="text-end pe-4">
                                                     <a href="${pageContext.request.contextPath}/admin/booking-details?id=${booking.id}"

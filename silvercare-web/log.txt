@@ -1,0 +1,162 @@
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1775)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+12-Feb-2026 02:50:14.429 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:15.431 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:16.436 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:17.429 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:18.430 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+java.sql.SQLException: No suitable driver found for postgresql://silvercare_user:NwaBDzgnmKvQWN5VubJNAq9Wi0rc5AlS@dpg-d66eahngi27c73e0be4g-a/silvercare
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:708)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.silvercare.util.DBConnection.getConnection(DBConnection.java:56)
+	at com.silvercare.util.ServiceDBUtil.getAllCategories(ServiceDBUtil.java:71)
+	at com.silvercare.dao.ServiceDAO.getAllCategories(ServiceDAO.java:31)
+	at com.silvercare.servlet.HomeServlet.doGet(HomeServlet.java:59)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at com.silvercare.web.filter.SessionManagementFilter.doFilter(SessionManagementFilter.java:45)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:88)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:492)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+	at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:654)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1775)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+12-Feb-2026 02:50:19.430 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:20.430 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:21.429 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+12-Feb-2026 02:50:22.453 WARNING [main] org.apache.catalina.core.StandardServer.await Invalid shutdown command [HEAD / HTTP/1.1] received
+
+
+
+
+
+
+silvercare_api:
+2026-02-12T02:50:07.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-6] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:07.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-5] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-6] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-5] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-6] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-5] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-5] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:07.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-6] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:07.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-5] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:07.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-6] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:12.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-7] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:12.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-7] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:12.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-7] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:12.508Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-7] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:12.509Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-7] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:17.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-9] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:17.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-9] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:17.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-9] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:17.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-9] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:17.508Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-9] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:22.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:22.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-8] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:22.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-8] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:22.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-8] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:22.508Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:27.506Z DEBUG 1 --- [SilverCare-Backend] [io-8081-exec-10] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:27.507Z DEBUG 1 --- [SilverCare-Backend] [io-8081-exec-10] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:27.507Z DEBUG 1 --- [SilverCare-Backend] [io-8081-exec-10] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:27.507Z DEBUG 1 --- [SilverCare-Backend] [io-8081-exec-10] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:27.508Z DEBUG 1 --- [SilverCare-Backend] [io-8081-exec-10] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:32.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:32.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-2] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:32.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-2] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:32.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-2] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:32.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:37.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:37.505Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-3] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:37.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-1] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:37.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-3] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:37.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-1] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:37.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-3] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:37.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-1] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:37.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:37.601Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-3] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:37.602Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-3] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-02-12T02:50:42.506Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : GET "/s-api/status", parameters={}
+2026-02-12T02:50:42.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-4] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.silvercare.controller.HealthController#status()
+2026-02-12T02:50:42.507Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-4] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-02-12T02:50:42.508Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-4] m.m.a.RequestResponseBodyMethodProcessor : Writing [{status=UP, message=SilverCare API is running}]
+2026-02-12T02:50:42.508Z DEBUG 1 --- [SilverCare-Backend] [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+
+
+
+
+extra:
+[698d3f35.5e26-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39504
+[698d3f35.5e27-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39518
+[698d3f36.5e28-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39520
+[698d3f36.5e28-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3f36.5e28-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3f36.5e28-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.106 user=postgres database=silvercare host=10.18.192.138 port=39520
+[698d3f4b.5e3c-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=49068
+[698d3f4b.5e3d-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=49072
+[698d3f4b.5e3e-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=49080
+[698d3f4b.5e3e-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3f4b.5e3e-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3f4b.5e3e-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.206 user=postgres database=silvercare host=10.18.192.138 port=49080
+[698d3f71.5e65-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59558
+[698d3f71.5e66-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59562
+[698d3f72.5e67-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59566
+[698d3f72.5e67-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3f72.5e67-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3f72.5e67-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.102 user=postgres database=silvercare host=10.18.192.138 port=59566
+[698d3f87.5e7a-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=56758
+[698d3f87.5e7b-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=56772
+[698d3f87.5e7c-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=56780
+[698d3f87.5e7c-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3f87.5e7c-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3f87.5e7c-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.086 user=postgres database=silvercare host=10.18.192.138 port=56780
+[698d3fad.5ea1-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39104
+[698d3fad.5ea2-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39120
+[698d3fae.5ea3-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=39136
+[698d3fae.5ea3-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3fae.5ea3-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3fae.5ea3-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.105 user=postgres database=silvercare host=10.18.192.138 port=39136
+[698ce56f.97-153] user=,db=,app=,client=,LOG:  checkpoint starting: time
+[698ce56f.97-154] user=,db=,app=,client=,LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 1 SLRU buffers; 1 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.004 s, total=0.212 s; sync files=1, longest=0.004 s, average=0.004 s; distance=1 kB, estimate=1 kB; lsn=0/1C003B8, redo lsn=0/1C00360
+[698d3fc3.5eb6-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59206
+[698d3fc3.5eb7-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59214
+[698d3fc4.5eb8-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=59226
+[698d3fc4.5eb8-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3fc4.5eb8-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3fc4.5eb8-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.024 user=postgres database=silvercare host=10.18.192.138 port=59226
+[698d3fe9.5edf-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=45978
+[698d3fe9.5ee0-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=45988
+[698d3fea.5ee1-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=45996
+[698d3fea.5ee1-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3fea.5ee1-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3fea.5ee1-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.115 user=postgres database=silvercare host=10.18.192.138 port=45996
+[698d3fff.5ef5-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=47086
+[698d3fff.5ef6-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=47092
+[698d3fff.5ef7-1] user=[unknown],db=[unknown],app=[unknown],client=10.18.192.138,LOG:  connection received: host=10.18.192.138 port=47102
+[698d3fff.5ef7-2] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authenticated: identity="postgres" method=md5 (/pgdata/dpg-d66eahngi27c73e0be4g-a/pg_hba.conf:88)
+[698d3fff.5ef7-3] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  connection authorized: user=postgres database=silvercare SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+[698d3fff.5ef7-4] user=postgres,db=silvercare,app=[unknown],client=10.18.192.138,LOG:  disconnection: session time: 0:00:03.178 user=postgres database=silvercare host=10.18.192.138 port=47102

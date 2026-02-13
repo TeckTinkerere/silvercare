@@ -31,6 +31,9 @@ Thumbs.db
 # Environment variables
 .env
 
+# Database properties (contains sensitive credentials)
+**/db.properties
+
 # Logs
 *.log
 

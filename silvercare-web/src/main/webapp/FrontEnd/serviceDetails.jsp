@@ -23,11 +23,43 @@
                                     <h1 class="display-5 fw-bold">${service.name}</h1>
                                     <p class="lead"><span class="badge bg-secondary">${categoryName}</span></p>
                                     <p>${service.description}</p>
-                                    <p class="display-6 fw-bold my-4">
-                                        $
-                                        <fmt:formatNumber value="${service.price}" minFractionDigits="2"
-                                            maxFractionDigits="2" />
-                                    </p>
+                                    
+                                    <c:choose>
+                                        <c:when test="${service.seasonalPrice != null && service.seasonalPrice != service.price}">
+                                            <%-- Show seasonal price with base price strikethrough --%>
+                                            <div class="my-4">
+                                                <div class="d-flex align-items-center gap-3 mb-2">
+                                                    <p class="display-6 fw-bold text-primary mb-0">
+                                                        $<fmt:formatNumber value="${service.seasonalPrice}" minFractionDigits="2" maxFractionDigits="2" />
+                                                    </p>
+                                                    <c:if test="${service.seasonalPrice > service.price}">
+                                                        <span class="badge bg-warning text-dark fs-6">
+                                                            <i class="fas fa-arrow-up"></i> Peak Season Pricing
+                                                        </span>
+                                                    </c:if>
+                                                    <c:if test="${service.seasonalPrice < service.price}">
+                                                        <span class="badge bg-success fs-6">
+                                                            <i class="fas fa-tag"></i> Seasonal Discount
+                                                        </span>
+                                                    </c:if>
+                                                </div>
+                                                <p class="text-muted text-decoration-line-through mb-0">
+                                                    Regular Price: $<fmt:formatNumber value="${service.price}" minFractionDigits="2" maxFractionDigits="2" />
+                                                </p>
+                                                <c:if test="${service.seasonalPrice < service.price}">
+                                                    <p class="text-success fw-bold mb-0">
+                                                        You save: $<fmt:formatNumber value="${service.price - service.seasonalPrice}" minFractionDigits="2" maxFractionDigits="2" />
+                                                    </p>
+                                                </c:if>
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <%-- Show regular price only --%>
+                                            <p class="display-6 fw-bold my-4">
+                                                $<fmt:formatNumber value="${service.price}" minFractionDigits="2" maxFractionDigits="2" />
+                                            </p>
+                                        </c:otherwise>
+                                    </c:choose>
 
                                     <!-- Add to Cart Form -->
                                     <form action="${pageContext.request.contextPath}/CartServlet?action=add"

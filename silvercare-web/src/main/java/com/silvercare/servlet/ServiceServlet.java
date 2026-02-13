@@ -8,7 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.silvercare.util.ApiClient;
+import com.silvercare.util.PriceCalculator;
 import com.silvercare.model.Service;
+import com.silvercare.model.Season;
+import com.silvercare.service.SeasonService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -16,13 +19,14 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Servlet for Service Catalog - Uses ApiClient to call REST APIs
+ * Servlet for Service Catalog - Uses ApiClient to call REST APIs.
  */
 @WebServlet(urlPatterns = { "/services", "/ServiceServlet" })
 public class ServiceServlet extends HttpServlet {
@@ -57,6 +61,11 @@ public class ServiceServlet extends HttpServlet {
         String search = request.getParameter("search");
 
         try {
+            // Get current season
+            Season currentSeason = SeasonService.getInstance().getCurrentSeason();
+            request.setAttribute("currentSeason", currentSeason);
+            System.out.println("ServiceServlet: Current season is " + currentSeason);
+
             // Fetch categories via REST API
             List<Map<String, Object>> categories = new ArrayList<>();
             ApiClient.ApiResponse<String> catResponse = ApiClient.get("/services/categories", String.class);
@@ -97,6 +106,10 @@ public class ServiceServlet extends HttpServlet {
                 }.getType();
                 List<Service> services = gson.fromJson(dataArray, serviceListType);
 
+                // Apply seasonal pricing to all services
+                PriceCalculator.applySeasonalPricing(services, currentSeason);
+                System.out.println("ServiceServlet: Applied seasonal pricing to " + services.size() + " services");
+
                 request.setAttribute("services", services);
 
                 // Group services by category and attach to category objects
@@ -131,6 +144,7 @@ public class ServiceServlet extends HttpServlet {
             request.setAttribute("categories", new ArrayList<>());
             request.setAttribute("services", new ArrayList<>());
             request.setAttribute("servicesByCategory", new HashMap<>());
+            request.setAttribute("currentSeason", Season.NEUTRAL);
         }
 
         RequestDispatcher dispatcher = request.getRequestDispatcher("/FrontEnd/serviceCategory.jsp");
@@ -146,6 +160,10 @@ public class ServiceServlet extends HttpServlet {
 
         if (idStr != null) {
             try {
+                // Get current season
+                Season currentSeason = SeasonService.getInstance().getCurrentSeason();
+                request.setAttribute("currentSeason", currentSeason);
+
                 // Fetch service details from API (includes category name)
                 ApiClient.ApiResponse<String> apiResponse = ApiClient.get("/services/" + idStr, String.class);
 
@@ -153,6 +171,18 @@ public class ServiceServlet extends HttpServlet {
                     JsonObject json = gson.fromJson(apiResponse.getData(), JsonObject.class);
                     JsonObject dataObj = json.getAsJsonObject("data");
                     Service service = gson.fromJson(dataObj, Service.class);
+
+                    // Calculate seasonal price
+                    BigDecimal multiplier = service.getMultiplierForSeason(currentSeason);
+                    BigDecimal seasonalPrice = PriceCalculator.calculateSeasonalPrice(service.getPrice(), multiplier);
+                    service.setSeasonalPrice(seasonalPrice);
+                    service.setCurrentSeason(currentSeason);
+
+                    System.out.println("ServiceServlet: Service " + service.getName() +
+                            " - Base: " + service.getPrice() +
+                            ", Multiplier: " + multiplier +
+                            ", Seasonal: " + seasonalPrice);
+
                     request.setAttribute("service", service);
 
                     // Set category name from the service object (API now includes it)
@@ -162,6 +192,7 @@ public class ServiceServlet extends HttpServlet {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                request.setAttribute("currentSeason", Season.NEUTRAL);
             }
         }
 
